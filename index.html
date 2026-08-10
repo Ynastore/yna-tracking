@@ -2,584 +2,705 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hand Gesture FX Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Rainbow Hand Portal — Hand Tracking Effect</title>
+<meta name="description" content="Efek portal pelangi yang mengikuti gerakan dua tangan, dibuat dengan hand tracking real-time.">
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: #0a0b10;
-    color: #f2f2f2;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    padding: 16px;
-    overflow-x: hidden;
+  :root{
+    --bg:#05060a;
+    --pink:#ff2ea6;
+    --purple:#7b2ff7;
+    --green:#39ff8f;
+    --cyan:#3df1ff;
+    --blue:#2b6dff;
+    --white:#f4fbff;
+    --panel:rgba(10,12,20,0.55);
+    --panel-border:rgba(255,255,255,0.08);
+    --text:#eaf2ff;
+    --text-dim:#8b93a7;
   }
-  h1 {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 8px 0 4px;
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;width:100%;height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    overflow:hidden;
+    overscroll-behavior:none;
   }
-  p.sub {
-    color: #9aa0ab;
-    font-size: 13px;
-    margin: 0 0 16px;
-    text-align: center;
-    max-width: 500px;
+  #stage{
+    position:fixed;inset:0;
+    width:100%;height:100%;
+    background:#000;
   }
-  .stage {
-    position: relative;
-    width: 100%;
-    max-width: 760px;
-    aspect-ratio: 4 / 3;
-    background: #000;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 0 0 1px #23262e, 0 20px 50px rgba(0,0,0,0.5);
-    transform-origin: center center;
+  video{display:none;}
+  canvas#output{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
   }
-  .stage.jump-shake {
-    animation: jumpShake 0.7s cubic-bezier(.36,.07,.19,.97) both;
+
+  /* ---------- Top bar ---------- */
+  #topbar{
+    position:fixed; top:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px;
+    z-index:20;
+    pointer-events:none;
+    background:linear-gradient(to bottom, rgba(0,0,0,0.55), transparent);
   }
-  /* video, videoCanvas, dan fxCanvas HARUS pakai transform mirror yang SAMA
-     PERSIS supaya koordinat tangan align dengan gambar kamera. */
-  #video, #videoCanvas, #fxCanvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
+  #brand{
+    display:flex; align-items:center; gap:10px;
+    pointer-events:auto;
   }
-  #video { visibility: hidden; }
-  #fxCanvas { pointer-events: none; }
-  #videoCanvas {
-    filter: blur(0px) brightness(1) saturate(1);
-    transition: filter 0.05s linear;
+  #brand .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:conic-gradient(from 0deg, var(--pink), var(--green), var(--cyan), var(--blue), var(--pink));
+    box-shadow:0 0 12px 2px rgba(61,241,255,0.7);
+    animation:spin 3s linear infinite;
   }
-  .jump-active #videoCanvas {
-    animation: jumpBlur 0.9s ease-out both;
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #brand h1{
+    font-size:14px; font-weight:600; margin:0;
+    letter-spacing:0.5px;
+    background:linear-gradient(90deg,var(--pink),var(--cyan),var(--blue));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
   }
-  #flashOverlay {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,60,90,0.5) 45%, rgba(0,0,0,0) 75%);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 6;
+  #status{
+    display:flex; align-items:center; gap:8px;
+    font-size:11px; color:var(--text-dim);
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    padding:6px 12px; border-radius:20px;
+    backdrop-filter:blur(10px);
+    pointer-events:auto;
   }
-  .jump-active #flashOverlay {
-    animation: flashPulse 0.9s ease-out both;
+  #status .pulse{
+    width:7px;height:7px;border-radius:50%;
+    background:#ff4d4d;
+    box-shadow:0 0 6px #ff4d4d;
   }
-  @keyframes jumpBlur {
-    0%   { filter: blur(0px) brightness(1) saturate(1); }
-    12%  { filter: blur(28px) brightness(2.4) saturate(2.2); }
-    35%  { filter: blur(14px) brightness(1.7) saturate(1.8); }
-    60%  { filter: blur(6px) brightness(1.3) saturate(1.3); }
-    100% { filter: blur(0px) brightness(1) saturate(1); }
+  #status.live .pulse{
+    background:var(--green);
+    box-shadow:0 0 6px var(--green);
+    animation:blink 1.4s ease-in-out infinite;
   }
-  @keyframes flashPulse {
-    0%   { opacity: 0; }
-    8%   { opacity: 1; }
-    30%  { opacity: 0.5; }
-    100% { opacity: 0; }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.35;}}
+  #fps{font-variant-numeric:tabular-nums; opacity:0.8;}
+
+  /* ---------- Hint ---------- */
+  #hint{
+    position:fixed; left:50%; top:18%;
+    transform:translateX(-50%);
+    text-align:center;
+    z-index:15;
+    pointer-events:none;
+    transition:opacity .4s ease;
   }
-  @keyframes jumpShake {
-    0%, 100% { transform: translate(0,0) scale(1); }
-    10% { transform: translate(-10px, 5px) scale(1.04); }
-    20% { transform: translate(8px, -8px) scale(1.06); }
-    30% { transform: translate(-8px, 8px) scale(1.03); }
-    40% { transform: translate(10px, -5px) scale(1.05); }
-    50% { transform: translate(-6px, -6px) scale(1.02); }
-    60% { transform: translate(6px, 6px) scale(1.02); }
-    70% { transform: translate(-4px, 4px) scale(1.01); }
-    100% { transform: translate(0,0) scale(1); }
+  #hint .emoji{font-size:34px; filter:drop-shadow(0 0 10px rgba(61,241,255,0.6)); animation:float 2.6s ease-in-out infinite;}
+  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+  #hint p{
+    margin:8px 0 0; font-size:13px; color:var(--text-dim);
+    background:var(--panel); border:1px solid var(--panel-border);
+    padding:6px 14px; border-radius:20px; backdrop-filter:blur(10px);
   }
-  #status {
-    position: absolute;
-    top: 10px; left: 10px;
-    background: rgba(0,0,0,0.55);
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    z-index: 7;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+
+  /* ---------- Bottom control dock ---------- */
+  #dock{
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    z-index:20;
+    display:flex; align-items:center; gap:6px;
+    padding:8px; border-radius:22px;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    backdrop-filter:blur(14px);
+    box-shadow:0 8px 30px rgba(0,0,0,0.4);
   }
-  #dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #ff4b4b;
-    transition: background 0.2s;
+  .btn{
+    -webkit-tap-highlight-color:transparent;
+    display:flex; align-items:center; justify-content:center;
+    width:46px; height:46px; border-radius:16px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid transparent;
+    color:var(--text);
+    font-size:19px;
+    cursor:pointer;
+    user-select:none;
+    transition:transform .15s ease, background .2s ease, border-color .2s ease;
   }
-  #dot.live { background: #2ee06b; }
-  #gestureLabel {
-    position: absolute;
-    bottom: 10px; left: 10px;
-    background: rgba(0,0,0,0.55);
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    z-index: 7;
-    opacity: 0;
-    transition: opacity 0.25s ease;
+  .btn:active{transform:scale(0.9);}
+  .btn:hover{background:rgba(255,255,255,0.09);}
+  .btn.active{
+    border-color:var(--cyan);
+    background:rgba(61,241,255,0.12);
+    box-shadow:0 0 14px rgba(61,241,255,0.35);
   }
-  #gestureLabel.show { opacity: 1; }
-  #debugToggle {
-    position: absolute;
-    top: 10px; right: 10px;
-    background: rgba(0,0,0,0.55);
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 11px;
-    z-index: 7;
-    cursor: pointer;
-    user-select: none;
+  .btn.shutter{
+    width:56px;height:56px;
+    background:radial-gradient(circle at 35% 30%, #fff, #cfd9ff 40%, var(--purple) 100%);
+    color:#0a0a12; font-size:20px;
   }
-  .legend {
-    max-width: 760px;
-    width: 100%;
-    margin-top: 14px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+  .sep{width:1px; height:26px; background:var(--panel-border); margin:0 2px;}
+
+  /* Theme picker */
+  #themeMenu{
+    position:fixed; bottom:82px; left:50%; transform:translateX(-50%) translateY(10px);
+    display:flex; gap:8px; padding:8px 10px; border-radius:18px;
+    background:var(--panel); border:1px solid var(--panel-border);
+    backdrop-filter:blur(14px);
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    z-index:21;
   }
-  .legend .item {
-    flex: 1;
-    min-width: 200px;
-    background: #161922;
-    border: 1px solid #23262e;
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 12.5px;
-    line-height: 1.4;
-    color: #c7cbd4;
+  #themeMenu.open{opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0);}
+  .swatch{
+    width:34px;height:34px;border-radius:50%;
+    cursor:pointer; border:2px solid rgba(255,255,255,0.15);
+    transition:transform .15s ease, border-color .15s ease;
   }
-  .legend .item b { color: #fff; }
-  button {
-    margin-top: 16px;
-    background: linear-gradient(135deg, #2f6fed, #7a4fed);
-    color: white;
-    border: none;
-    padding: 11px 24px;
-    border-radius: 8px;
-    font-size: 14px;
-    cursor: pointer;
-    font-weight: 600;
+  .swatch:active{transform:scale(0.88);}
+  .swatch.sel{border-color:#fff; transform:scale(1.1);}
+
+  /* ---------- Overlays ---------- */
+  #loading, #errorBox{
+    position:fixed; inset:0; z-index:50;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at center, #0c0f1a 0%, #05060a 80%);
+    text-align:center; padding:24px;
+    transition:opacity .5s ease;
   }
-  button:disabled { opacity: 0.5; cursor: default; }
-  button:active { transform: scale(0.98); }
-  #err {
-    color: #ff6b6b;
-    font-size: 13px;
-    margin-top: 10px;
-    text-align: center;
-    max-width: 600px;
-    display: none;
+  .ring{
+    width:56px;height:56px;border-radius:50%;
+    border:3px solid rgba(255,255,255,0.08);
+    border-top-color:var(--cyan);
+    border-right-color:var(--pink);
+    animation:rot 0.9s linear infinite;
+    margin-bottom:18px;
+  }
+  @keyframes rot{to{transform:rotate(360deg);}}
+  #loading p, #errorBox p{color:var(--text-dim); font-size:13px; max-width:280px; line-height:1.5;}
+  #loading h2, #errorBox h2{font-size:16px; margin:0 0 6px; font-weight:600;}
+  #errorBox h2{color:#ff6b6b;}
+  #retryBtn{
+    margin-top:16px; padding:10px 22px; border-radius:14px; border:none;
+    background:linear-gradient(90deg,var(--pink),var(--purple));
+    color:#fff; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  #snapFlash{
+    position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:60;
+  }
+  #toast{
+    position:fixed; left:50%; bottom:92px; transform:translateX(-50%) translateY(20px);
+    background:rgba(20,22,32,0.92); border:1px solid var(--panel-border);
+    padding:9px 16px; border-radius:14px; font-size:12px; color:var(--text);
+    opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+    z-index:30; backdrop-filter:blur(10px);
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:480px){
+    #brand h1{display:none;}
+    .btn{width:42px;height:42px;font-size:17px;}
   }
 </style>
 </head>
 <body>
 
-<h1>✨ Hand Gesture FX Test</h1>
-<p class="sub">Rentangkan dua tangan buat ribbon overlay. Genggam salah satu tangan buat sembunyikan efeknya. Bikin hati pakai 2 tangan / pinch buat love. Kepal lalu buka tangan buat efek kejut.</p>
-
-<div class="stage" id="stage">
-  <div id="status"><span id="dot"></span><span id="statusText">Belum aktif</span></div>
-  <div id="debugToggle">Debug: OFF</div>
-  <video id="video" playsinline autoplay muted></video>
-  <canvas id="videoCanvas"></canvas>
-  <canvas id="fxCanvas"></canvas>
-  <div id="flashOverlay"></div>
-  <div id="gestureLabel">-</div>
+<div id="stage">
+  <video id="webcam" playsinline autoplay muted></video>
+  <canvas id="output"></canvas>
 </div>
 
-<button id="startBtn">Aktifkan Kamera</button>
-<div id="err"></div>
-
-<div class="legend">
-  <div class="item">🎀 <b>Ribbon overlay</b><br>Rentangkan kedua tangan, telapak terbuka. Genggam salah satu tangan buat sembunyiin.</div>
-  <div class="item">💕 <b>Love / heart burst</b><br>Bikin hati pakai 2 tangan (jempol+telunjuk saling nempel), atau pinch 1 tangan.</div>
-  <div class="item">😱 <b>Jump effect</b><br>Kepalkan tangan lalu buka semua jari dengan cepat.</div>
+<div id="topbar">
+  <div id="brand"><span class="dot"></span><h1>RAINBOW HAND PORTAL</h1></div>
+  <div id="status"><span class="pulse"></span><span id="statusText">Menyiapkan…</span><span id="fps"></span></div>
 </div>
 
-<!-- MediaPipe Hands via CDN -->
+<div id="hint">
+  <div class="emoji">🖐️🤚</div>
+  <p>Tunjukkan <b>dua tangan</b> ke kamera untuk membuka portal</p>
+</div>
+
+<div id="themeMenu">
+  <div class="swatch sel" data-theme="rainbow" style="background:conic-gradient(#ff2ea6,#7b2ff7,#39ff8f,#3df1ff,#2b6dff,#ff2ea6)" title="Rainbow"></div>
+  <div class="swatch" data-theme="aurora" style="background:linear-gradient(135deg,#39ff8f,#3df1ff,#2b6dff)" title="Aurora"></div>
+  <div class="swatch" data-theme="fire" style="background:linear-gradient(135deg,#ffe83d,#ff8a2e,#ff2e5b)" title="Fire"></div>
+  <div class="swatch" data-theme="mono" style="background:linear-gradient(135deg,#e8ecff,#8f9bff,#3d4bff)" title="Mono Blue"></div>
+</div>
+
+<div id="dock">
+  <div class="btn" id="btnTheme" title="Warna">🎨</div>
+  <div class="btn" id="btnDots" title="Titik tangan">🖇️</div>
+  <div class="btn" id="btnMirror" title="Cermin">🔁</div>
+  <div class="sep"></div>
+  <div class="btn shutter" id="btnShot" title="Ambil gambar">📸</div>
+  <div class="sep"></div>
+  <div class="btn" id="btnCam" title="Ganti kamera">🔄</div>
+  <div class="btn" id="btnFull" title="Layar penuh">⛶</div>
+</div>
+
+<div id="toast"></div>
+<div id="snapFlash"></div>
+
+<div id="loading">
+  <div class="ring"></div>
+  <h2>Memuat model hand tracking…</h2>
+  <p>Mohon izinkan akses kamera saat diminta. Model AI dimuat langsung di browser kamu, tidak ada data yang dikirim ke server.</p>
+</div>
+
+<div id="errorBox" style="display:none;">
+  <h2>Kamera tidak dapat diakses</h2>
+  <p id="errorMsg">Pastikan kamu mengizinkan akses kamera, dan situs ini dibuka lewat HTTPS (atau localhost).</p>
+  <button id="retryBtn">Coba Lagi</button>
+</div>
+
+<!-- MediaPipe Hands (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
 <script>
-const video = document.getElementById('video');
-const videoCanvas = document.getElementById('videoCanvas');
-const vctx = videoCanvas.getContext('2d');
-const fxCanvas = document.getElementById('fxCanvas');
-const fctx = fxCanvas.getContext('2d');
-const stage = document.getElementById('stage');
-const startBtn = document.getElementById('startBtn');
-const statusText = document.getElementById('statusText');
-const dot = document.getElementById('dot');
-const errBox = document.getElementById('err');
-const gestureLabel = document.getElementById('gestureLabel');
-const debugToggle = document.getElementById('debugToggle');
+(function(){
+  "use strict";
 
-let camera = null;
-let lastFrameTime = performance.now();
-let debugMode = false;
-debugToggle.addEventListener('click', () => {
-  debugMode = !debugMode;
-  debugToggle.textContent = 'Debug: ' + (debugMode ? 'ON' : 'OFF');
-});
+  /* ================= Elements ================= */
+  const videoEl   = document.getElementById('webcam');
+  const canvas    = document.getElementById('output');
+  const ctx       = canvas.getContext('2d', { alpha:false, desynchronized:true });
+  const offscreen = document.createElement('canvas');
+  const octx      = offscreen.getContext('2d');
 
-// ---------- warna ribbon TETAP (statis, bukan animasi pelangi) ----------
-const RIBBON_COLOR_A = '167, 90, 255';  // ungu neon (r,g,b)
-const RIBBON_COLOR_B = '46, 214, 255';  // cyan neon (r,g,b)
+  const loadingEl   = document.getElementById('loading');
+  const errorEl     = document.getElementById('errorBox');
+  const errorMsgEl  = document.getElementById('errorMsg');
+  const retryBtn    = document.getElementById('retryBtn');
+  const statusEl    = document.getElementById('status');
+  const statusText  = document.getElementById('statusText');
+  const fpsEl       = document.getElementById('fps');
+  const hintEl      = document.getElementById('hint');
+  const toastEl     = document.getElementById('toast');
+  const snapFlash   = document.getElementById('snapFlash');
 
-// ---------- particle systems ----------
-let hearts = [];
-let confetti = [];
+  const btnTheme  = document.getElementById('btnTheme');
+  const themeMenu = document.getElementById('themeMenu');
+  const btnDots   = document.getElementById('btnDots');
+  const btnMirror = document.getElementById('btnMirror');
+  const btnShot   = document.getElementById('btnShot');
+  const btnCam    = document.getElementById('btnCam');
+  const btnFull   = document.getElementById('btnFull');
 
-function spawnHearts(x, y, count) {
-  for (let i = 0; i < count; i++) {
-    const angle = (-Math.PI / 2) + (Math.random() - 0.5) * 1.4;
-    const speed = 60 + Math.random() * 90;
-    hearts.push({
-      x, y,
-      vx: Math.cos(angle) * speed * 0.35,
-      vy: Math.sin(angle) * speed,
-      life: 0,
-      maxLife: 1.1 + Math.random() * 0.6,
-      size: 14 + Math.random() * 18,
-      hue: 340,
-      rot: (Math.random() - 0.5) * 0.6,
-      vrot: (Math.random() - 0.5) * 1.2
+  /* ================= State ================= */
+  let showDots   = false;
+  let mirrored   = true;
+  let facing     = 'user';
+  let currentTheme = 'rainbow';
+  let camera     = null;
+  let handsModel = null;
+  let running    = false;
+
+  const THEMES = {
+    rainbow: { stops:[[0,'#ff2ea6'],[0.28,'#39ff8f'],[0.5,'#f4fbff'],[0.72,'#3df1ff'],[1,'#2b6dff']],
+               border:['#ff2ea6','#39ff8f','#3df1ff','#2b6dff'], hue:200, sat:1.6 },
+    aurora:  { stops:[[0,'#0dffb2'],[0.35,'#20e3ff'],[0.65,'#f4fbff'],[1,'#2b6dff']],
+               border:['#0dffb2','#20e3ff','#20e3ff','#2b6dff'], hue:150, sat:1.5 },
+    fire:    { stops:[[0,'#ffe83d'],[0.35,'#ff8a2e'],[0.65,'#fff3d6'],[1,'#ff2e5b']],
+               border:['#ffe83d','#ff8a2e','#ff8a2e','#ff2e5b'], hue:-40, sat:1.7 },
+    mono:    { stops:[[0,'#e8ecff'],[0.35,'#8f9bff'],[0.65,'#f4fbff'],[1,'#3d4bff']],
+               border:['#e8ecff','#8f9bff','#8f9bff','#3d4bff'], hue:220, sat:1.2 },
+  };
+
+  // smoothed landmark storage: { left:{top:{x,y}, bottom:{x,y}}, right:{...} }
+  let smooth = {
+    left:  { top:null, bottom:null, active:false, life:0 },
+    right: { top:null, bottom:null, active:false, life:0 }
+  };
+  const SMOOTH_FACTOR = 0.55;   // higher = smoother but more lag
+  const LIFE_DECAY    = 6;      // frames a hand can "survive" without detection (avoids flicker)
+
+  let lastResults = null;
+  let frameCount = 0, fpsTimer = performance.now(), fps = 0;
+  let tGlobal = 0;
+
+  /* ================= Helpers ================= */
+  function lerp(a,b,t){ return a + (b-a)*t; }
+  function lerpPt(prev, next, t){
+    if(!prev) return {x:next.x, y:next.y};
+    return { x:lerp(prev.x,next.x,t), y:lerp(prev.y,next.y,t) };
+  }
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>toastEl.classList.remove('show'), 1800);
+  }
+  function resizeCanvas(){
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    const w = window.innerWidth, h = window.innerHeight;
+    canvas.width  = Math.round(w*dpr);
+    canvas.height = Math.round(h*dpr);
+    canvas.style.width = w+'px';
+    canvas.style.height = h+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  /* ================= MediaPipe setup ================= */
+  function initHands(){
+    handsModel = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
-  }
-}
-
-function spawnConfetti(cx, cy, count) {
-  for (let i = 0; i < count; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 140 + Math.random() * 260;
-    confetti.push({
-      x: cx, y: cy,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 120,
-      life: 0,
-      maxLife: 1.0 + Math.random() * 0.6,
-      size: 5 + Math.random() * 7,
-      hue: Math.random() * 360,
-      rot: Math.random() * Math.PI,
-      vrot: (Math.random() - 0.5) * 10
+    handsModel.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.65,
+      minTrackingConfidence: 0.6
     });
-  }
-}
-
-function drawHeart(ctx, x, y, size, hue, alpha, rot) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rot);
-  ctx.scale(size, size);
-  ctx.beginPath();
-  ctx.moveTo(0, 0.3);
-  ctx.bezierCurveTo(0, 0, -0.5, 0, -0.5, 0.35);
-  ctx.bezierCurveTo(-0.5, 0.7, 0, 0.85, 0, 1.05);
-  ctx.bezierCurveTo(0, 0.85, 0.5, 0.7, 0.5, 0.35);
-  ctx.bezierCurveTo(0.5, 0, 0, 0, 0, 0.3);
-  ctx.closePath();
-  ctx.fillStyle = `hsla(${hue}, 90%, 62%, ${alpha})`;
-  ctx.shadowColor = `hsla(${hue}, 100%, 60%, ${alpha})`;
-  ctx.shadowBlur = 14;
-  ctx.fill();
-  ctx.restore();
-}
-
-function updateAndDrawHearts(dt) {
-  hearts = hearts.filter(h => h.life < h.maxLife);
-  for (const h of hearts) {
-    h.life += dt;
-    h.x += h.vx * dt;
-    h.y += h.vy * dt;
-    h.vy += -20 * dt;
-    h.vx *= 0.98;
-    h.rot += h.vrot * dt;
-    const t = h.life / h.maxLife;
-    const alpha = t < 0.15 ? (t / 0.15) : 1 - ((t - 0.15) / 0.85);
-    const scale = 1 + t * 0.4;
-    drawHeart(fctx, h.x, h.y, (h.size / 20) * scale, h.hue, Math.max(alpha, 0), h.rot);
-  }
-}
-
-function updateAndDrawConfetti(dt) {
-  confetti = confetti.filter(c => c.life < c.maxLife);
-  for (const c of confetti) {
-    c.life += dt;
-    c.vy += 380 * dt;
-    c.x += c.vx * dt;
-    c.y += c.vy * dt;
-    c.rot += c.vrot * dt;
-    const t = c.life / c.maxLife;
-    const alpha = 1 - t;
-    fctx.save();
-    fctx.translate(c.x, c.y);
-    fctx.rotate(c.rot);
-    fctx.fillStyle = `hsla(${c.hue}, 90%, 60%, ${Math.max(alpha,0)})`;
-    fctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.5);
-    fctx.restore();
-  }
-}
-
-// ---------- gesture helpers ----------
-function dist(a, b) {
-  const dx = a.x - b.x, dy = a.y - b.y, dz = (a.z || 0) - (b.z || 0);
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
-}
-
-const FINGERS = [
-  { tip: 8, pip: 6 },
-  { tip: 12, pip: 10 },
-  { tip: 16, pip: 14 },
-  { tip: 20, pip: 18 }
-];
-
-function countExtendedFingers(lm) {
-  const wrist = lm[0];
-  let count = 0;
-  for (const f of FINGERS) {
-    if (dist(lm[f.tip], wrist) > dist(lm[f.pip], wrist) * 1.15) count++;
-  }
-  if (dist(lm[4], wrist) > dist(lm[3], wrist) * 1.1) count++;
-  return count;
-}
-
-function handSize(lm) {
-  const dx = lm[9].x - lm[0].x, dy = lm[9].y - lm[0].y;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-// ---------- ribbon overlay (tracking langsung, tanpa smoothing/lag) ----------
-function canDrawRibbon(handA, handB) {
-  // kalau salah satu tangan ngepal -> sembunyikan (dipakai user buat "matiin" efek)
-  if (countExtendedFingers(handA) <= 1) return false;
-  if (countExtendedFingers(handB) <= 1) return false;
-
-  // jarak antar pergelangan tangan harus cukup jauh (bukan 1 tangan kedetect dobel)
-  const wristDist = Math.hypot(handA[0].x - handB[0].x, handA[0].y - handB[0].y);
-  if (wristDist < 0.18) return false;
-
-  // ukuran kedua tangan di layar tidak boleh beda jauh (hindari distorsi
-  // akibat 1 tangan deket kamera & 1 tangan jauh/beda arah)
-  const sA = handSize(handA), sB = handSize(handB);
-  const ratio = Math.max(sA, sB) / Math.max(Math.min(sA, sB), 0.0001);
-  if (ratio > 1.9) return false;
-
-  return true;
-}
-
-function drawRibbon(handA, handB, w, h) {
-  // pakai posisi ujung jari ASLI tiap frame (tanpa smoothing) biar akurat & nempel
-  const p = (lm) => ({ x: lm.x * w, y: lm.y * h });
-  const A1 = p(handA[8]),  A2 = p(handA[20]);
-  const B1 = p(handB[8]),  B2 = p(handB[20]);
-
-  const grad = fctx.createLinearGradient(A1.x, A1.y, B1.x, B1.y);
-  grad.addColorStop(0, `rgba(${RIBBON_COLOR_A}, 0.85)`);
-  grad.addColorStop(1, `rgba(${RIBBON_COLOR_B}, 0.85)`);
-
-  fctx.save();
-  fctx.beginPath();
-  fctx.moveTo(A1.x, A1.y);
-  fctx.lineTo(B1.x, B1.y);
-  fctx.lineTo(B2.x, B2.y);
-  fctx.lineTo(A2.x, A2.y);
-  fctx.closePath();
-  fctx.fillStyle = grad;
-  fctx.shadowColor = `rgba(${RIBBON_COLOR_A}, 0.6)`;
-  fctx.shadowBlur = 18;
-  fctx.globalAlpha = 0.88;
-  fctx.fill();
-
-  fctx.lineWidth = 3;
-  fctx.strokeStyle = `rgba(255,255,255,0.85)`;
-  fctx.stroke();
-  fctx.restore();
-
-  if (debugMode) {
-    fctx.save();
-    fctx.globalAlpha = 1;
-    fctx.fillStyle = '#fff';
-    [A1, A2, B1, B2].forEach(pt => {
-      fctx.beginPath();
-      fctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-      fctx.fill();
-    });
-    fctx.restore();
-  }
-}
-
-let prevFistOpenState = 'unknown';
-let lastJumpTime = 0;
-const JUMP_COOLDOWN = 1800;
-
-let prevPinchState = [false, false];
-let lastPinchSpawn = [0, 0];
-let prevTwoHandHeart = false;
-let lastTwoHandHeartSpawn = 0;
-
-function triggerJumpscare() {
-  const now = performance.now();
-  if (now - lastJumpTime < JUMP_COOLDOWN) return;
-  lastJumpTime = now;
-
-  stage.classList.remove('jump-active', 'jump-shake');
-  void stage.offsetWidth;
-  stage.classList.add('jump-active', 'jump-shake');
-  setTimeout(() => stage.classList.remove('jump-active', 'jump-shake'), 950);
-
-  spawnConfetti(fxCanvas.width / 2, fxCanvas.height / 2, 70);
-  showGestureLabel('😱 Jump FX!');
-}
-
-let labelTimeout = null;
-function showGestureLabel(text) {
-  gestureLabel.textContent = text;
-  gestureLabel.classList.add('show');
-  clearTimeout(labelTimeout);
-  labelTimeout = setTimeout(() => gestureLabel.classList.remove('show'), 1200);
-}
-
-// ---------- mediapipe setup ----------
-const hands = new Hands({
-  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-});
-
-hands.setOptions({
-  maxNumHands: 2,
-  modelComplexity: 1,
-  minDetectionConfidence: 0.7,
-  minTrackingConfidence: 0.7
-});
-
-hands.onResults(onResults);
-
-function onResults(results) {
-  const now = performance.now();
-  const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
-  lastFrameTime = now;
-
-  const w = results.image.width;
-  const h = results.image.height;
-  videoCanvas.width = w; videoCanvas.height = h;
-  fxCanvas.width = w; fxCanvas.height = h;
-
-  vctx.save();
-  vctx.clearRect(0, 0, w, h);
-  vctx.drawImage(results.image, 0, 0, w, h);
-  vctx.restore();
-
-  fctx.clearRect(0, 0, w, h);
-
-  let rawList = results.multiHandLandmarks || [];
-  const scores = (results.multiHandedness || []).map(hd => hd.score || 0);
-  rawList = rawList.filter((_, i) => (scores[i] === undefined || scores[i] > 0.75));
-  rawList = rawList.slice().sort((a, b) => a[0].x - b[0].x);
-  if (rawList.length > 2) rawList = rawList.slice(0, 2);
-
-  if (rawList.length === 2 && canDrawRibbon(rawList[0], rawList[1])) {
-    drawRibbon(rawList[0], rawList[1], w, h);
+    handsModel.onResults(onResults);
   }
 
-  // --- love pakai 2 tangan (ujung jempol & telunjuk kedua tangan berdekatan) ---
-  if (rawList.length === 2) {
-    const [hA, hB] = rawList;
-    const thumbGap = dist(hA[4], hB[4]);
-    const indexGap = dist(hA[8], hB[8]);
-    const refScale = (handSize(hA) + handSize(hB)) / 2;
-    const isTwoHandHeart = thumbGap < refScale * 0.6 && indexGap < refScale * 0.6;
+  async function startCamera(){
+    loadingEl.style.display = 'flex';
+    loadingEl.style.opacity = '1';
+    errorEl.style.display = 'none';
+    statusText.textContent = 'Menyiapkan…';
+    statusEl.classList.remove('live');
 
-    if (isTwoHandHeart && !prevTwoHandHeart && now - lastTwoHandHeartSpawn > 500) {
-      const mx = ((hA[8].x + hB[8].x) / 2) * w;
-      const my = ((hA[8].y + hB[8].y) / 2) * h;
-      spawnHearts(mx, my, 18);
-      lastTwoHandHeartSpawn = now;
-      showGestureLabel('💕 Love!');
+    try{
+      if(camera){ try{ camera.stop(); }catch(e){} camera=null; }
+
+      const constraints = {
+        video:{ facingMode: facing, width:{ideal:640}, height:{ideal:480} },
+        audio:false
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      videoEl.srcObject = stream;
+      await new Promise(res=>{ videoEl.onloadedmetadata = ()=>{ videoEl.play(); res(); }; });
+
+      resizeCanvas();
+      offscreen.width  = videoEl.videoWidth  || 640;
+      offscreen.height = videoEl.videoHeight || 480;
+
+      camera = new Camera(videoEl, {
+        onFrame: async () => {
+          if(handsModel) await handsModel.send({image: videoEl});
+        },
+        width: offscreen.width,
+        height: offscreen.height
+      });
+      await camera.start();
+
+      running = true;
+      loadingEl.style.opacity = '0';
+      setTimeout(()=>{ loadingEl.style.display='none'; }, 500);
+      statusText.textContent = 'Live';
+      statusEl.classList.add('live');
+      requestAnimationFrame(renderLoop);
+    }catch(err){
+      console.error(err);
+      running = false;
+      loadingEl.style.display = 'none';
+      errorEl.style.display = 'flex';
+      errorMsgEl.textContent = (err && err.message) ? err.message : 'Gagal mengakses kamera.';
+      statusText.textContent = 'Terputus';
     }
-    prevTwoHandHeart = isTwoHandHeart;
-  } else {
-    prevTwoHandHeart = false;
   }
 
-  rawList.forEach((lm, idx) => {
-    const extended = countExtendedFingers(lm);
-    const scale = dist(lm[0], lm[9]) || 0.1;
-    const pinchDist = dist(lm[4], lm[8]);
-    const isPinch = pinchDist < scale * 0.55;
+  retryBtn.addEventListener('click', startCamera);
 
-    if (isPinch && !prevPinchState[idx] && now - lastPinchSpawn[idx] > 350) {
-      const x = lm[8].x * w, y = lm[8].y * h;
-      spawnHearts(x, y, 10);
-      lastPinchSpawn[idx] = now;
-      showGestureLabel('💕 Love!');
-    }
-    prevPinchState[idx] = isPinch;
+  /* ================= Hand result processing ================= */
+  function onResults(results){
+    lastResults = results;
+  }
 
-    if (idx === 0) {
-      let state = 'mid';
-      if (extended <= 1) state = 'fist';
-      else if (extended >= 5) state = 'open';
+  function updateSmoothState(){
+    // decay life first
+    smooth.left.life  = Math.max(0, smooth.left.life  - 1);
+    smooth.right.life = Math.max(0, smooth.right.life - 1);
 
-      if (state === 'open' && prevFistOpenState === 'fist') {
-        triggerJumpscare();
+    if(lastResults && lastResults.multiHandLandmarks && lastResults.multiHandLandmarks.length){
+      const hands = lastResults.multiHandLandmarks.map(lm=>{
+        // key reference points: index MCP (5) as "top", pinky MCP (17) as "bottom"
+        const rawTop    = lm[5];
+        const rawBottom = lm[17];
+        let cx = 0;
+        for(const p of lm) cx += p.x;
+        cx /= lm.length;
+        // account for mirroring in display space
+        const dispX = mirrored ? (1-cx) : cx;
+        return { rawTop, rawBottom, dispX };
+      });
+      hands.sort((a,b)=>a.dispX-b.dispX);
+
+      const assign = (slot, h)=>{
+        if(!h) return;
+        const flip = (p)=> ({ x: mirrored ? (1-p.x) : p.x, y: p.y });
+        const top = flip(h.rawTop), bottom = flip(h.rawBottom);
+        smooth[slot].top    = lerpPt(smooth[slot].top, top, SMOOTH_FACTOR);
+        smooth[slot].bottom = lerpPt(smooth[slot].bottom, bottom, SMOOTH_FACTOR);
+        smooth[slot].active = true;
+        smooth[slot].life = LIFE_DECAY;
+      };
+
+      if(hands.length === 1){
+        // pick side based on which slot was already active / closer
+        const h = hands[0];
+        const distLeft  = smooth.left.top  ? Math.abs(smooth.left.top.x - (mirrored?1-h.rawTop.x:h.rawTop.x)) : 999;
+        const distRight = smooth.right.top ? Math.abs(smooth.right.top.x - (mirrored?1-h.rawTop.x:h.rawTop.x)) : 999;
+        if(distLeft <= distRight){ assign('left', h); }
+        else{ assign('right', h); }
+      } else {
+        assign('left', hands[0]);
+        assign('right', hands[hands.length-1]);
       }
-      if (state !== 'mid') prevFistOpenState = state;
+    }
+
+    smooth.left.active  = smooth.left.life  > 0;
+    smooth.right.active = smooth.right.life > 0;
+  }
+
+  /* ================= Drawing ================= */
+  function drawBackgroundVideo(vw, vh){
+    octx.save();
+    if(mirrored){ octx.translate(vw,0); octx.scale(-1,1); }
+    octx.drawImage(videoEl, 0,0, vw, vh);
+    octx.restore();
+  }
+
+  function toCanvasSpace(pt, vw, vh, scale, offX, offY){
+    return { x: offX + pt.x*vw*scale, y: offY + pt.y*vh*scale };
+  }
+
+  function quadPath(p, LT,LB,RT,RB){
+    p.moveTo(LT.x,LT.y);
+    p.lineTo(RT.x,RT.y);
+    p.lineTo(RB.x,RB.y);
+    p.lineTo(LB.x,LB.y);
+    p.closePath();
+  }
+
+  function drawPortal(cw, ch){
+    const vw = offscreen.width, vh = offscreen.height;
+    // cover-fit mapping from video space to canvas space
+    const scale = Math.max(cw/vw, ch/vh);
+    const offX = (cw - vw*scale)/2;
+    const offY = (ch - vh*scale)/2;
+
+    const LT = toCanvasSpace(smooth.left.top,    vw,vh,scale,offX,offY);
+    const LB = toCanvasSpace(smooth.left.bottom, vw,vh,scale,offX,offY);
+    const RT = toCanvasSpace(smooth.right.top,   vw,vh,scale,offX,offY);
+    const RB = toCanvasSpace(smooth.right.bottom,vw,vh,scale,offX,offY);
+
+    const theme = THEMES[currentTheme];
+
+    ctx.save();
+    const path = new Path2D();
+    quadPath(path, LT,LB,RT,RB);
+    ctx.clip(path);
+
+    // duotone / x-ray video content inside the portal
+    ctx.filter = `invert(1) saturate(${theme.sat}) hue-rotate(${theme.hue}deg) brightness(1.15) contrast(1.05)`;
+    ctx.drawImage(offscreen, offX, offY, vw*scale, vh*scale);
+    ctx.filter = 'none';
+
+    // rainbow gradient tint following the top->bottom axis of the quad
+    const midTop = {x:(LT.x+RT.x)/2, y:(LT.y+RT.y)/2};
+    const midBot = {x:(LB.x+RB.x)/2, y:(LB.y+RB.y)/2};
+    const grad = ctx.createLinearGradient(midTop.x, midTop.y, midBot.x, midBot.y);
+    theme.stops.forEach(([off,color])=>grad.addColorStop(off,color));
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.65;
+    ctx.fillStyle = grad;
+    ctx.fill(path);
+
+    // gentle scanline shimmer
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.18;
+    const shimmerT = (Math.sin(tGlobal*0.0022)+1)/2;
+    const shimmerY = lerp(midTop.y, midBot.y, shimmerT);
+    const shimmerGrad = ctx.createLinearGradient(0, shimmerY-40, 0, shimmerY+40);
+    shimmerGrad.addColorStop(0,'rgba(255,255,255,0)');
+    shimmerGrad.addColorStop(0.5,'rgba(255,255,255,0.9)');
+    shimmerGrad.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = shimmerGrad;
+    ctx.fillRect(Math.min(LT.x,LB.x)-20, shimmerY-40, Math.max(RT.x,RB.x)-Math.min(LT.x,LB.x)+40, 80);
+
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+
+    // glowing neon border, edge by edge
+    const edges = [
+      { a:LT, b:RT, color: theme.border[0] }, // top
+      { a:RT, b:RB, color: theme.border[2] }, // right
+      { a:RB, b:LB, color: theme.border[3] }, // bottom
+      { a:LB, b:LT, color: theme.border[1] }, // left
+    ];
+    ctx.save();
+    ctx.lineWidth = 4.5;
+    ctx.lineCap = 'round';
+    for(const e of edges){
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = e.color;
+      ctx.strokeStyle = e.color;
+      ctx.beginPath();
+      ctx.moveTo(e.a.x,e.a.y);
+      ctx.lineTo(e.b.x,e.b.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // corner accents
+    ctx.save();
+    [LT,RT,RB,LB].forEach((c,i)=>{
+      ctx.beginPath();
+      ctx.arc(c.x,c.y, 5,0,Math.PI*2);
+      ctx.fillStyle = theme.border[i];
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = theme.border[i];
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawHandDots(cw,ch){
+    if(!lastResults || !lastResults.multiHandLandmarks) return;
+    const vw = offscreen.width, vh = offscreen.height;
+    const scale = Math.max(cw/vw, ch/vh);
+    const offX = (cw - vw*scale)/2;
+    const offY = (ch - vh*scale)/2;
+    ctx.save();
+    for(const lm of lastResults.multiHandLandmarks){
+      for(const raw of lm){
+        const p = { x: mirrored ? (1-raw.x) : raw.x, y: raw.y };
+        const c = toCanvasSpace(p, vw,vh,scale,offX,offY);
+        ctx.beginPath();
+        ctx.arc(c.x,c.y,2.6,0,Math.PI*2);
+        ctx.fillStyle = 'rgba(61,241,255,0.85)';
+        ctx.shadowBlur = 6; ctx.shadowColor = '#3df1ff';
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function renderLoop(ts){
+    if(!running) return;
+    tGlobal = ts;
+    updateSmoothState();
+
+    const cw = window.innerWidth, ch = window.innerHeight;
+    const vw = offscreen.width, vh = offscreen.height;
+
+    if(videoEl.readyState >= 2 && vw>0 && vh>0){
+      drawBackgroundVideo(vw,vh);
+
+      const scale = Math.max(cw/vw, ch/vh);
+      const offX = (cw - vw*scale)/2;
+      const offY = (ch - vh*scale)/2;
+
+      ctx.save();
+      ctx.filter = 'brightness(0.55) saturate(0.7)';
+      ctx.drawImage(offscreen, offX, offY, vw*scale, vh*scale);
+      ctx.filter = 'none';
+      ctx.restore();
+
+      const bothActive = smooth.left.active && smooth.right.active &&
+                          smooth.left.top && smooth.left.bottom &&
+                          smooth.right.top && smooth.right.bottom;
+
+      if(bothActive){
+        drawPortal(cw,ch);
+        hintEl.style.opacity = '0';
+      } else {
+        hintEl.style.opacity = '1';
+      }
+
+      if(showDots) drawHandDots(cw,ch);
+    }
+
+    // FPS
+    frameCount++;
+    const now = performance.now();
+    if(now - fpsTimer >= 500){
+      fps = Math.round((frameCount*1000)/(now-fpsTimer));
+      fpsEl.textContent = fps + ' fps';
+      frameCount = 0; fpsTimer = now;
+    }
+
+    requestAnimationFrame(renderLoop);
+  }
+
+  /* ================= UI wiring ================= */
+  btnTheme.addEventListener('click', ()=>{
+    themeMenu.classList.toggle('open');
+  });
+  themeMenu.addEventListener('click', (e)=>{
+    const sw = e.target.closest('.swatch');
+    if(!sw) return;
+    currentTheme = sw.dataset.theme;
+    document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
+    sw.classList.add('sel');
+    showToast('Tema: ' + sw.title);
+  });
+  document.addEventListener('click', (e)=>{
+    if(!themeMenu.contains(e.target) && e.target!==btnTheme){
+      themeMenu.classList.remove('open');
     }
   });
 
-  updateAndDrawHearts(dt);
-  updateAndDrawConfetti(dt);
-}
+  btnDots.addEventListener('click', ()=>{
+    showDots = !showDots;
+    btnDots.classList.toggle('active', showDots);
+    showToast(showDots ? 'Titik tangan: ON' : 'Titik tangan: OFF');
+  });
 
-// ---------- start camera ----------
-startBtn.addEventListener('click', async () => {
-  startBtn.disabled = true;
-  startBtn.textContent = 'Memuat...';
-  errBox.style.display = 'none';
+  btnMirror.addEventListener('click', ()=>{
+    mirrored = !mirrored;
+    btnMirror.classList.toggle('active', mirrored);
+    showToast(mirrored ? 'Mode cermin: ON' : 'Mode cermin: OFF');
+  });
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user' },
-      audio: false
-    });
-    video.srcObject = stream;
-    await video.play();
-
-    camera = new Camera(video, {
-      onFrame: async () => { await hands.send({ image: video }); },
-      width: 1280,
-      height: 960
-    });
-    camera.start();
-
-    statusText.textContent = 'Kamera aktif';
-    dot.classList.add('live');
-    startBtn.textContent = 'Sedang Berjalan';
-  } catch (e) {
-    console.error(e);
-    startBtn.disabled = false;
-    startBtn.textContent = 'Aktifkan Kamera';
-    if (e.name === 'NotAllowedError') {
-      errBox.textContent = 'Izin kamera ditolak. Klik ikon kamera di address bar dan izinkan akses, lalu coba lagi.';
-    } else if (e.name === 'NotFoundError') {
-      errBox.textContent = 'Tidak ada kamera yang terdeteksi di perangkat ini.';
-    } else {
-      errBox.textContent = 'Gagal mengakses kamera: ' + e.message + '. Pastikan halaman diakses lewat HTTPS.';
+  btnShot.addEventListener('click', ()=>{
+    try{
+      const link = document.createElement('a');
+      link.download = 'rainbow-hand-portal-' + Date.now() + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      snapFlash.style.transition = 'none';
+      snapFlash.style.opacity = '0.85';
+      requestAnimationFrame(()=>{
+        snapFlash.style.transition = 'opacity .4s ease';
+        snapFlash.style.opacity = '0';
+      });
+      showToast('Gambar tersimpan ✔');
+    }catch(err){
+      showToast('Gagal menyimpan gambar');
     }
-    errBox.style.display = 'block';
-  }
-});
-</script>
+  });
 
+  btnCam.addEventListener('click', ()=>{
+    facing = (facing === 'user') ? 'environment' : 'user';
+    showToast('Mengganti kamera…');
+    startCamera();
+  });
+
+  btnFull.addEventListener('click', ()=>{
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen().catch(()=>{});
+      btnFull.classList.add('active');
+    } else {
+      document.exitFullscreen().catch(()=>{});
+      btnFull.classList.remove('active');
+    }
+  });
+
+  btnMirror.classList.add('active'); // mirrored default on
+
+  /* ================= Boot ================= */
+  resizeCanvas();
+  initHands();
+  startCamera();
+
+})();
+</script>
 </body>
 </html>
