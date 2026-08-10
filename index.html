@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hand Tracking Test</title>
+<title>Hand Gesture FX Test</title>
 <style>
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: #0d0f14;
+    background: #0a0b10;
     color: #f2f2f2;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     display: flex;
@@ -16,38 +16,93 @@
     align-items: center;
     min-height: 100vh;
     padding: 16px;
+    overflow-x: hidden;
   }
   h1 {
     font-size: 20px;
     font-weight: 600;
     margin: 8px 0 4px;
-    letter-spacing: 0.3px;
   }
   p.sub {
     color: #9aa0ab;
     font-size: 13px;
     margin: 0 0 16px;
     text-align: center;
+    max-width: 500px;
   }
   .stage {
     position: relative;
     width: 100%;
-    max-width: 720px;
+    max-width: 760px;
     aspect-ratio: 4 / 3;
     background: #000;
-    border-radius: 14px;
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 0 0 1px #23262e, 0 20px 40px rgba(0,0,0,0.4);
+    box-shadow: 0 0 0 1px #23262e, 0 20px 50px rgba(0,0,0,0.5);
+    transform-origin: center center;
   }
-  video, canvas {
+  .stage.jump-shake {
+    animation: jumpShake 0.7s cubic-bezier(.36,.07,.19,.97) both;
+  }
+  video, canvas.videoCanvas {
     position: absolute;
     top: 0; left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scaleX(-1); /* mirror biar natural kayak cermin */
+    transform: scaleX(-1);
   }
   video { visibility: hidden; }
+  #fxCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    transform: scaleX(-1);
+  }
+  #videoCanvas {
+    filter: blur(0px) brightness(1) saturate(1);
+    transition: filter 0.05s linear;
+  }
+  .jump-active #videoCanvas {
+    animation: jumpBlur 0.9s ease-out both;
+  }
+  #flashOverlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,60,90,0.5) 45%, rgba(0,0,0,0) 75%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 6;
+  }
+  .jump-active #flashOverlay {
+    animation: flashPulse 0.9s ease-out both;
+  }
+  @keyframes jumpBlur {
+    0%   { filter: blur(0px) brightness(1) saturate(1); }
+    12%  { filter: blur(28px) brightness(2.4) saturate(2.2); }
+    35%  { filter: blur(14px) brightness(1.7) saturate(1.8); }
+    60%  { filter: blur(6px) brightness(1.3) saturate(1.3); }
+    100% { filter: blur(0px) brightness(1) saturate(1); }
+  }
+  @keyframes flashPulse {
+    0%   { opacity: 0; }
+    8%   { opacity: 1; }
+    30%  { opacity: 0.5; }
+    100% { opacity: 0; }
+  }
+  @keyframes jumpShake {
+    0%, 100% { transform: translate(0,0) scale(1); }
+    10% { transform: translate(-10px, 5px) scale(1.04); }
+    20% { transform: translate(8px, -8px) scale(1.06); }
+    30% { transform: translate(-8px, 8px) scale(1.03); }
+    40% { transform: translate(10px, -5px) scale(1.05); }
+    50% { transform: translate(-6px, -6px) scale(1.02); }
+    60% { transform: translate(6px, 6px) scale(1.02); }
+    70% { transform: translate(-4px, 4px) scale(1.01); }
+    100% { transform: translate(0,0) scale(1); }
+  }
   #status {
     position: absolute;
     top: 10px; left: 10px;
@@ -55,7 +110,7 @@
     padding: 6px 12px;
     border-radius: 999px;
     font-size: 12px;
-    z-index: 5;
+    z-index: 7;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -67,35 +122,44 @@
     transition: background 0.2s;
   }
   #dot.live { background: #2ee06b; }
-  .info-row {
-    max-width: 720px;
+  #gestureLabel {
+    position: absolute;
+    bottom: 10px; left: 10px;
+    background: rgba(0,0,0,0.55);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    z-index: 7;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  #gestureLabel.show { opacity: 1; }
+  .legend {
+    max-width: 760px;
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
     margin-top: 14px;
+    display: flex;
+    gap: 10px;
     flex-wrap: wrap;
   }
-  .card {
+  .legend .item {
+    flex: 1;
+    min-width: 200px;
     background: #161922;
     border: 1px solid #23262e;
     border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 13px;
-    flex: 1;
-    min-width: 140px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: #c7cbd4;
   }
-  .card b {
-    display: block;
-    font-size: 18px;
-    margin-top: 2px;
-  }
+  .legend .item b { color: #fff; }
   button {
     margin-top: 16px;
-    background: #2f6fed;
+    background: linear-gradient(135deg, #2f6fed, #7a4fed);
     color: white;
     border: none;
-    padding: 10px 22px;
+    padding: 11px 24px;
     border-radius: 8px;
     font-size: 14px;
     cursor: pointer;
@@ -115,51 +179,234 @@
 </head>
 <body>
 
-<h1>✋ Hand Tracking Test</h1>
-<p class="sub">Deteksi tangan langsung dari kamera browser — pakai MediaPipe Hands</p>
+<h1>✨ Hand Gesture FX Test</h1>
+<p class="sub">Rentangkan dua tangan buat ribbon overlay, pinch jempol+telunjuk buat love, kepal lalu buka tangan buat efek kejut blur.</p>
 
-<div class="stage">
+<div class="stage" id="stage">
   <div id="status"><span id="dot"></span><span id="statusText">Belum aktif</span></div>
   <video id="video" playsinline autoplay muted></video>
-  <canvas id="canvas"></canvas>
+  <canvas id="videoCanvas"></canvas>
+  <canvas id="fxCanvas"></canvas>
+  <div id="flashOverlay"></div>
+  <div id="gestureLabel">-</div>
 </div>
 
 <button id="startBtn">Aktifkan Kamera</button>
 <div id="err"></div>
 
-<div class="info-row">
-  <div class="card">Tangan Terdeteksi<b id="handCount">0</b></div>
-  <div class="card">FPS<b id="fpsCount">0</b></div>
-  <div class="card">Sisi<b id="handedness">-</b></div>
+<div class="legend">
+  <div class="item">🎀 <b>Ribbon overlay</b><br>Rentangkan kedua tangan (telapak terbuka) di depan kamera, jarak sedang.</div>
+  <div class="item">💕 <b>Love / heart burst</b><br>Pertemukan ujung jempol &amp; telunjuk (pinch) di satu tangan.</div>
+  <div class="item">😱 <b>Jump effect</b><br>Kepalkan tangan lalu buka semua jari dengan cepat.</div>
 </div>
 
 <!-- MediaPipe Hands via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
 <script>
 const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const videoCanvas = document.getElementById('videoCanvas');
+const vctx = videoCanvas.getContext('2d');
+const fxCanvas = document.getElementById('fxCanvas');
+const fctx = fxCanvas.getContext('2d');
+const stage = document.getElementById('stage');
 const startBtn = document.getElementById('startBtn');
 const statusText = document.getElementById('statusText');
 const dot = document.getElementById('dot');
-const handCountEl = document.getElementById('handCount');
-const fpsCountEl = document.getElementById('fpsCount');
-const handednessEl = document.getElementById('handedness');
 const errBox = document.getElementById('err');
+const gestureLabel = document.getElementById('gestureLabel');
 
 let camera = null;
-let lastTime = performance.now();
-let frameCount = 0;
-let fps = 0;
+let lastFrameTime = performance.now();
 
-function showError(msg) {
-  errBox.style.display = 'block';
-  errBox.textContent = msg;
+// ---------- particle systems ----------
+let hearts = [];
+let confetti = [];
+
+function spawnHearts(x, y, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = (-Math.PI / 2) + (Math.random() - 0.5) * 1.4;
+    const speed = 60 + Math.random() * 90;
+    hearts.push({
+      x, y,
+      vx: Math.cos(angle) * speed * 0.35,
+      vy: Math.sin(angle) * speed,
+      life: 0,
+      maxLife: 1.1 + Math.random() * 0.6,
+      size: 14 + Math.random() * 18,
+      hue: 330 + Math.random() * 30,
+      rot: (Math.random() - 0.5) * 0.6,
+      vrot: (Math.random() - 0.5) * 1.2
+    });
+  }
 }
 
+function spawnConfetti(cx, cy, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 140 + Math.random() * 260;
+    confetti.push({
+      x: cx, y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 120,
+      life: 0,
+      maxLife: 1.0 + Math.random() * 0.6,
+      size: 5 + Math.random() * 7,
+      hue: Math.random() * 360,
+      rot: Math.random() * Math.PI,
+      vrot: (Math.random() - 0.5) * 10
+    });
+  }
+}
+
+function drawHeart(ctx, x, y, size, hue, alpha, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.scale(size, size);
+  ctx.beginPath();
+  ctx.moveTo(0, 0.3);
+  ctx.bezierCurveTo(0, 0, -0.5, 0, -0.5, 0.35);
+  ctx.bezierCurveTo(-0.5, 0.7, 0, 0.85, 0, 1.05);
+  ctx.bezierCurveTo(0, 0.85, 0.5, 0.7, 0.5, 0.35);
+  ctx.bezierCurveTo(0.5, 0, 0, 0, 0, 0.3);
+  ctx.closePath();
+  ctx.fillStyle = `hsla(${hue}, 90%, 62%, ${alpha})`;
+  ctx.shadowColor = `hsla(${hue}, 100%, 60%, ${alpha})`;
+  ctx.shadowBlur = 14;
+  ctx.fill();
+  ctx.restore();
+}
+
+function updateAndDrawHearts(dt) {
+  hearts = hearts.filter(h => h.life < h.maxLife);
+  for (const h of hearts) {
+    h.life += dt;
+    h.x += h.vx * dt;
+    h.y += h.vy * dt;
+    h.vy += -20 * dt; // sedikit percepatan naik lalu melambat
+    h.vx *= 0.98;
+    h.rot += h.vrot * dt;
+    const t = h.life / h.maxLife;
+    const alpha = t < 0.15 ? (t / 0.15) : 1 - ((t - 0.15) / 0.85);
+    const scale = 1 + t * 0.4;
+    drawHeart(fctx, h.x, h.y, (h.size / 20) * scale, h.hue, Math.max(alpha, 0), h.rot);
+  }
+}
+
+function updateAndDrawConfetti(dt) {
+  confetti = confetti.filter(c => c.life < c.maxLife);
+  for (const c of confetti) {
+    c.life += dt;
+    c.vy += 380 * dt;
+    c.x += c.vx * dt;
+    c.y += c.vy * dt;
+    c.rot += c.vrot * dt;
+    const t = c.life / c.maxLife;
+    const alpha = 1 - t;
+    fctx.save();
+    fctx.translate(c.x, c.y);
+    fctx.rotate(c.rot);
+    fctx.fillStyle = `hsla(${c.hue}, 90%, 60%, ${Math.max(alpha,0)})`;
+    fctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.5);
+    fctx.restore();
+  }
+}
+
+// ---------- ribbon overlay ----------
+let ribbonHue = 0;
+
+function drawRibbon(handA, handB, w, h) {
+  // titik atas: index MCP (5), titik bawah: pinky MCP (17)
+  const aTop = handA[5], aBot = handA[17];
+  const bTop = handB[5], bBot = handB[17];
+
+  const p = (lm) => ({ x: lm.x * w, y: lm.y * h });
+  const A1 = p(aTop), A2 = p(aBot), B1 = p(bTop), B2 = p(bBot);
+
+  ribbonHue = (ribbonHue + 0.6) % 360;
+
+  const grad = fctx.createLinearGradient(A1.x, A1.y, B1.x, B1.y);
+  for (let i = 0; i <= 6; i++) {
+    const hue = (ribbonHue + i * 45) % 360;
+    grad.addColorStop(i / 6, `hsla(${hue}, 90%, 60%, 0.85)`);
+  }
+
+  fctx.save();
+  fctx.beginPath();
+  fctx.moveTo(A1.x, A1.y);
+  fctx.lineTo(B1.x, B1.y);
+  fctx.lineTo(B2.x, B2.y);
+  fctx.lineTo(A2.x, A2.y);
+  fctx.closePath();
+  fctx.fillStyle = grad;
+  fctx.shadowColor = `hsla(${ribbonHue}, 100%, 60%, 0.8)`;
+  fctx.shadowBlur = 25;
+  fctx.globalAlpha = 0.9;
+  fctx.fill();
+
+  // garis tepi glow
+  fctx.lineWidth = 3;
+  fctx.strokeStyle = `hsla(${ribbonHue}, 100%, 75%, 0.9)`;
+  fctx.stroke();
+  fctx.restore();
+}
+
+// ---------- gesture helpers ----------
+function dist(a, b) {
+  const dx = a.x - b.x, dy = a.y - b.y, dz = (a.z || 0) - (b.z || 0);
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+const FINGERS = [
+  { tip: 8, pip: 6 },   // index
+  { tip: 12, pip: 10 }, // middle
+  { tip: 16, pip: 14 }, // ring
+  { tip: 20, pip: 18 }  // pinky
+];
+
+function countExtendedFingers(lm) {
+  const wrist = lm[0];
+  let count = 0;
+  for (const f of FINGERS) {
+    if (dist(lm[f.tip], wrist) > dist(lm[f.pip], wrist) * 1.15) count++;
+  }
+  // thumb (pakai IP joint 3 vs tip 4)
+  if (dist(lm[4], wrist) > dist(lm[3], wrist) * 1.1) count++;
+  return count;
+}
+
+let prevFistOpenState = 'unknown'; // 'fist' | 'open' | 'mid'
+let lastJumpTime = 0;
+let jumpCooldown = 1800; // ms
+
+let prevPinchState = [false, false];
+let lastPinchSpawn = [0, 0];
+
+function triggerJumpscare() {
+  const now = performance.now();
+  if (now - lastJumpTime < jumpCooldown) return;
+  lastJumpTime = now;
+
+  stage.classList.remove('jump-active', 'jump-shake');
+  void stage.offsetWidth; // restart animasi
+  stage.classList.add('jump-active', 'jump-shake');
+  setTimeout(() => stage.classList.remove('jump-active', 'jump-shake'), 950);
+
+  spawnConfetti(fxCanvas.width / 2, fxCanvas.height / 2, 70);
+  showGestureLabel('😱 Jump FX!');
+}
+
+let labelTimeout = null;
+function showGestureLabel(text) {
+  gestureLabel.textContent = text;
+  gestureLabel.classList.add('show');
+  clearTimeout(labelTimeout);
+  labelTimeout = setTimeout(() => gestureLabel.classList.remove('show'), 1200);
+}
+
+// ---------- mediapipe setup ----------
 const hands = new Hands({
   locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 });
@@ -167,66 +414,75 @@ const hands = new Hands({
 hands.setOptions({
   maxNumHands: 2,
   modelComplexity: 1,
-  minDetectionConfidence: 0.6,
-  minTrackingConfidence: 0.6
+  minDetectionConfidence: 0.65,
+  minTrackingConfidence: 0.65
 });
 
 hands.onResults(onResults);
 
 function onResults(results) {
-  // resize canvas biar match resolusi video asli
-  canvas.width = results.image.width;
-  canvas.height = results.image.height;
-
-  ctx.save();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-
-  const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
-  handCountEl.textContent = numHands;
-
-  if (numHands > 0) {
-    let sides = [];
-    for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-      const landmarks = results.multiHandLandmarks[i];
-      const label = results.multiHandedness[i]?.label || '?';
-      sides.push(label);
-
-      drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {
-        color: '#2ee06b',
-        lineWidth: 4
-      });
-      drawLandmarks(ctx, landmarks, {
-        color: '#ff9f1c',
-        fillColor: '#ff9f1c',
-        radius: 4
-      });
-    }
-    handednessEl.textContent = sides.join(' / ');
-  } else {
-    handednessEl.textContent = '-';
-  }
-
-  ctx.restore();
-
-  // hitung FPS
-  frameCount++;
   const now = performance.now();
-  if (now - lastTime >= 1000) {
-    fps = frameCount;
-    frameCount = 0;
-    lastTime = now;
-    fpsCountEl.textContent = fps;
+  const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+  lastFrameTime = now;
+
+  const w = results.image.width;
+  const h = results.image.height;
+  videoCanvas.width = w; videoCanvas.height = h;
+  fxCanvas.width = w; fxCanvas.height = h;
+
+  vctx.save();
+  vctx.clearRect(0, 0, w, h);
+  vctx.drawImage(results.image, 0, 0, w, h);
+  vctx.restore();
+
+  fctx.clearRect(0, 0, w, h);
+
+  const list = results.multiHandLandmarks || [];
+
+  // --- ribbon jika 2 tangan terdeteksi ---
+  if (list.length === 2) {
+    drawRibbon(list[0], list[1], w, h);
   }
+
+  // --- per-hand gesture: pinch (love) & fist/open ---
+  list.forEach((lm, idx) => {
+    const extended = countExtendedFingers(lm);
+    const scale = dist(lm[0], lm[9]) || 0.1;
+    const pinchDist = dist(lm[4], lm[8]);
+    const isPinch = pinchDist < scale * 0.55;
+
+    if (isPinch && !prevPinchState[idx] && now - lastPinchSpawn[idx] > 350) {
+      const x = lm[8].x * w, y = lm[8].y * h;
+      spawnHearts(x, y, 10);
+      lastPinchSpawn[idx] = now;
+      showGestureLabel('💕 Love!');
+    }
+    prevPinchState[idx] = isPinch;
+
+    // fist -> open, hanya pakai tangan pertama biar stabil
+    if (idx === 0) {
+      let state = 'mid';
+      if (extended <= 1) state = 'fist';
+      else if (extended >= 5) state = 'open';
+
+      if (state === 'open' && prevFistOpenState === 'fist') {
+        triggerJumpscare();
+      }
+      if (state !== 'mid') prevFistOpenState = state;
+    }
+  });
+
+  updateAndDrawHearts(dt);
+  updateAndDrawConfetti(dt);
 }
 
+// ---------- start camera ----------
 startBtn.addEventListener('click', async () => {
   startBtn.disabled = true;
   startBtn.textContent = 'Memuat...';
   errBox.style.display = 'none';
 
   try {
-    // minta izin kamera dulu secara eksplisit
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user' },
       audio: false
@@ -235,13 +491,10 @@ startBtn.addEventListener('click', async () => {
     await video.play();
 
     camera = new Camera(video, {
-      onFrame: async () => {
-        await hands.send({ image: video });
-      },
+      onFrame: async () => { await hands.send({ image: video }); },
       width: 1280,
       height: 960
     });
-
     camera.start();
 
     statusText.textContent = 'Kamera aktif';
@@ -252,12 +505,13 @@ startBtn.addEventListener('click', async () => {
     startBtn.disabled = false;
     startBtn.textContent = 'Aktifkan Kamera';
     if (e.name === 'NotAllowedError') {
-      showError('Izin kamera ditolak. Klik ikon kamera di address bar dan izinkan akses, lalu coba lagi.');
+      errBox.textContent = 'Izin kamera ditolak. Klik ikon kamera di address bar dan izinkan akses, lalu coba lagi.';
     } else if (e.name === 'NotFoundError') {
-      showError('Tidak ada kamera yang terdeteksi di perangkat ini.');
+      errBox.textContent = 'Tidak ada kamera yang terdeteksi di perangkat ini.';
     } else {
-      showError('Gagal mengakses kamera: ' + e.message + '. Pastikan halaman diakses lewat HTTPS.');
+      errBox.textContent = 'Gagal mengakses kamera: ' + e.message + '. Pastikan halaman diakses lewat HTTPS.';
     }
+    errBox.style.display = 'block';
   }
 });
 </script>
