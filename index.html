@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Rainbow Hand Portal — Hand Tracking Effect</title>
-<meta name="description" content="Efek portal pelangi yang mengikuti gerakan dua tangan, dibuat dengan hand tracking real-time.">
+<title>YNA TRACKING — Hand Pattern &amp; Mask Effect</title>
+<meta name="description" content="YNA TRACKING — efek pola tangan dinamis dan transformasi topeng real-time berbasis hand &amp; face tracking.">
 <style>
   :root{
     --bg:#05060a;
@@ -41,6 +41,9 @@
     display:block;
   }
 
+  svg.icon{ width:20px; height:20px; display:block; }
+  svg.icon *{ vector-effect:non-scaling-stroke; }
+
   /* ---------- Top bar ---------- */
   #topbar{
     position:fixed; top:0; left:0; right:0;
@@ -62,8 +65,8 @@
   }
   @keyframes spin{to{transform:rotate(360deg);}}
   #brand h1{
-    font-size:14px; font-weight:600; margin:0;
-    letter-spacing:0.5px;
+    font-size:14px; font-weight:700; margin:0;
+    letter-spacing:1.5px;
     background:linear-gradient(90deg,var(--pink),var(--cyan),var(--blue));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
@@ -89,21 +92,38 @@
   @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.35;}}
   #fps{font-variant-numeric:tabular-nums; opacity:0.8;}
 
-  /* ---------- Hint ---------- */
+  /* ---------- Hint (icon only, no text) ---------- */
   #hint{
-    position:fixed; left:50%; top:18%;
+    position:fixed; left:50%; top:20%;
     transform:translateX(-50%);
-    text-align:center;
     z-index:15;
     pointer-events:none;
-    transition:opacity .4s ease;
+    transition:opacity .45s ease;
   }
-  #hint .emoji{font-size:34px; filter:drop-shadow(0 0 10px rgba(61,241,255,0.6)); animation:float 2.6s ease-in-out infinite;}
-  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
-  #hint p{
-    margin:8px 0 0; font-size:13px; color:var(--text-dim);
-    background:var(--panel); border:1px solid var(--panel-border);
-    padding:6px 14px; border-radius:20px; backdrop-filter:blur(10px);
+  #hint .ring{
+    width:64px; height:64px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    backdrop-filter:blur(10px);
+    animation:hintPulse 2.4s ease-in-out infinite;
+    box-shadow:0 0 22px rgba(61,241,255,0.25);
+  }
+  #hint svg{ width:28px; height:28px; color:var(--cyan); }
+  @keyframes hintPulse{
+    0%,100%{ transform:scale(1); box-shadow:0 0 22px rgba(61,241,255,0.25); }
+    50%{ transform:scale(1.08); box-shadow:0 0 32px rgba(61,241,255,0.45); }
+  }
+
+  /* ---------- Side watermark ---------- */
+  #sideWatermark{
+    position:fixed; right:10px; top:50%;
+    transform:translateY(-50%) rotate(90deg);
+    transform-origin:right center;
+    font-size:10px; letter-spacing:4px; font-weight:700;
+    color:rgba(255,255,255,0.28);
+    pointer-events:none; z-index:12;
+    white-space:nowrap;
   }
 
   /* ---------- Bottom control dock ---------- */
@@ -124,7 +144,6 @@
     background:rgba(255,255,255,0.04);
     border:1px solid transparent;
     color:var(--text);
-    font-size:19px;
     cursor:pointer;
     user-select:none;
     transition:transform .15s ease, background .2s ease, border-color .2s ease;
@@ -139,8 +158,9 @@
   .btn.shutter{
     width:56px;height:56px;
     background:radial-gradient(circle at 35% 30%, #fff, #cfd9ff 40%, var(--purple) 100%);
-    color:#0a0a12; font-size:20px;
+    color:#0a0a12;
   }
+  .btn.shutter svg{ color:#0a0a12; }
   .sep{width:1px; height:26px; background:var(--panel-border); margin:0 2px;}
 
   /* Theme picker */
@@ -191,16 +211,18 @@
   }
   #toast{
     position:fixed; left:50%; bottom:92px; transform:translateX(-50%) translateY(20px);
+    display:flex; align-items:center; gap:8px;
     background:rgba(20,22,32,0.92); border:1px solid var(--panel-border);
     padding:9px 16px; border-radius:14px; font-size:12px; color:var(--text);
     opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
     z-index:30; backdrop-filter:blur(10px);
   }
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  #toast .tdot{ width:7px; height:7px; border-radius:50%; background:var(--cyan); box-shadow:0 0 6px var(--cyan); flex:none; }
 
   @media (max-width:480px){
     #brand h1{display:none;}
-    .btn{width:42px;height:42px;font-size:17px;}
+    .btn{width:42px;height:42px;}
   }
 </style>
 </head>
@@ -212,14 +234,22 @@
 </div>
 
 <div id="topbar">
-  <div id="brand"><span class="dot"></span><h1>RAINBOW HAND PORTAL</h1></div>
-  <div id="status"><span class="pulse"></span><span id="statusText">Menyiapkan…</span><span id="fps"></span></div>
+  <div id="brand"><span class="dot"></span><h1>YNA TRACKING</h1></div>
+  <div id="status"><span class="pulse"></span><span id="statusText">Menyiapkan</span><span id="fps"></span></div>
 </div>
 
 <div id="hint">
-  <div class="emoji">🖐️🤚</div>
-  <p>Tunjukkan <b>dua tangan</b> untuk portal · <b>cubit &amp; tahan 3d</b> untuk topeng · <b>bentuk pistol ke kepala 2d</b> untuk mode V2</p>
+  <div class="ring">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 12V6a1.5 1.5 0 0 1 3 0v5"></path>
+      <path d="M11 11V4.5a1.5 1.5 0 0 1 3 0V11"></path>
+      <path d="M14 11.2V6a1.5 1.5 0 0 1 3 0v7"></path>
+      <path d="M17 12v-2a1.5 1.5 0 0 1 3 0v5c0 3.5-2 6-6 6h-1c-3 0-4.2-1-5.6-3l-2.6-4.3c-.5-.9-.2-1.9.7-2.3.8-.4 1.7-.1 2.2.6L9 14"></path>
+    </svg>
+  </div>
 </div>
+
+<div id="sideWatermark">YNA STORE</div>
 
 <div id="themeMenu">
   <div class="swatch sel" data-theme="rainbow" style="background:conic-gradient(#ff2ea6,#7b2ff7,#39ff8f,#3df1ff,#2b6dff,#ff2ea6)" title="Rainbow"></div>
@@ -229,17 +259,29 @@
 </div>
 
 <div id="dock">
-  <div class="btn" id="btnTheme" title="Warna">🎨</div>
-  <div class="btn" id="btnDots" title="Titik tangan">🖇️</div>
-  <div class="btn" id="btnMirror" title="Cermin">🔁</div>
+  <div class="btn" id="btnTheme" title="Warna">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="8.2" cy="10" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="12" cy="7.6" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="15.8" cy="10" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="10.4" cy="14.6" r="1.15" fill="currentColor" stroke="none"></circle><path d="M15 14.8c1 0 1.7.7 1.7 1.6 0 1-.9 1.6-2.1 1.6H12c-1 0-1.9-.8-1.9-2.1 0-3 2.6-5.5 5.9-5.5 3.9 0 6 2.7 6 5.8 0 2.7-2 4.8-5 4.8"></path></svg>
+  </div>
+  <div class="btn" id="btnDots" title="Titik tangan">
+    <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="6" r="1.6"></circle><circle cx="12" cy="6" r="1.6"></circle><circle cx="18" cy="6" r="1.6"></circle><circle cx="6" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="18" cy="12" r="1.6"></circle><circle cx="6" cy="18" r="1.6"></circle><circle cx="12" cy="18" r="1.6"></circle><circle cx="18" cy="18" r="1.6"></circle></svg>
+  </div>
+  <div class="btn active" id="btnMirror" title="Cermin">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><path d="M6 7l-3 5 3 5"></path><path d="M18 7l3 5-3 5"></path></svg>
+  </div>
   <div class="sep"></div>
-  <div class="btn shutter" id="btnShot" title="Ambil gambar">📸</div>
+  <div class="btn shutter" id="btnShot" title="Ambil gambar">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"></path><circle cx="12" cy="13.5" r="3.4"></circle></svg>
+  </div>
   <div class="sep"></div>
-  <div class="btn" id="btnCam" title="Ganti kamera">🔄</div>
-  <div class="btn" id="btnFull" title="Layar penuh">⛶</div>
+  <div class="btn" id="btnCam" title="Ganti kamera">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h4l1.5-2h5L16 7h4v11H4z"></path><path d="M9 16a3.2 3.2 0 1 0 0-6.4"></path><path d="M15 9.6a3.2 3.2 0 0 1 0 6.4"></path></svg>
+  </div>
+  <div class="btn" id="btnFull" title="Layar penuh">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5h4"></path><path d="M20 9V5h-4"></path><path d="M4 15v4h4"></path><path d="M20 15v4h-4"></path></svg>
+  </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast"><span class="tdot"></span><span id="toastText"></span></div>
 <div id="snapFlash"></div>
 
 <div id="loading">
@@ -279,6 +321,7 @@
   const fpsEl       = document.getElementById('fps');
   const hintEl      = document.getElementById('hint');
   const toastEl     = document.getElementById('toast');
+  const toastTextEl = document.getElementById('toastText');
   const snapFlash   = document.getElementById('snapFlash');
 
   const btnTheme  = document.getElementById('btnTheme');
@@ -300,24 +343,11 @@
   let running    = false;
 
   const THEMES = {
-    rainbow: { stops:[[0,'#ff2ea6'],[0.28,'#39ff8f'],[0.5,'#f4fbff'],[0.72,'#3df1ff'],[1,'#2b6dff']],
-               border:['#ff2ea6','#39ff8f','#3df1ff','#2b6dff'], hue:200, sat:1.6 },
-    aurora:  { stops:[[0,'#0dffb2'],[0.35,'#20e3ff'],[0.65,'#f4fbff'],[1,'#2b6dff']],
-               border:['#0dffb2','#20e3ff','#20e3ff','#2b6dff'], hue:150, sat:1.5 },
-    fire:    { stops:[[0,'#ffe83d'],[0.35,'#ff8a2e'],[0.65,'#fff3d6'],[1,'#ff2e5b']],
-               border:['#ffe83d','#ff8a2e','#ff8a2e','#ff2e5b'], hue:-40, sat:1.7 },
-    mono:    { stops:[[0,'#e8ecff'],[0.35,'#8f9bff'],[0.65,'#f4fbff'],[1,'#3d4bff']],
-               border:['#e8ecff','#8f9bff','#8f9bff','#3d4bff'], hue:220, sat:1.2 },
+    rainbow: { hueBase:0,   border:'#3df1ff' },
+    aurora:  { hueBase:150, border:'#20e3ff' },
+    fire:    { hueBase:20,  border:'#ff8a2e' },
+    mono:    { hueBase:220, border:'#8f9bff' },
   };
-
-  // smoothed landmark storage: { left:{top:{x,y}, bottom:{x,y}}, right:{...} }
-  let smooth = {
-    left:  { top:null, bottom:null, active:false, life:0 },
-    right: { top:null, bottom:null, active:false, life:0 }
-  };
-  const SMOOTH_FACTOR = 0.55;   // higher = smoother but more lag
-  const LIFE_DECAY    = 6;      // frames a hand can "survive" without detection (avoids flicker)
-  const SWITCH_MARGIN = 0.06;   // hysteresis margin so a single hand doesn't flicker between slots
 
   let lastResults = null;      // hands
   let lastFaceResults = null;  // face mesh
@@ -329,29 +359,31 @@
   let pinchActive = false, pinchHoldStart = null;
   let gunActive = false, gunHoldStart = null, gunFiredThisHold = false;
   let lastPinchCanvasPoint = null;
-  let maskState = 'off';        // 'off' | 'v1' | 'v2'
+  let lastGunCanvasPoint = null;
+
+  let maskOn = true;            // mask visible or not
+  let maskType = 'clown';       // 'clown' | 'hacker' — which mask is currently assigned
   let maskTransition = null;    // { type:'intro'|'outro'|'shoot', start, duration }
-  let scaryFilterStrength = 0;  // 0..1, eases in/out around v2
-  let particles = [];           // shared particle system (matrix rain + shoot sparks)
+  let scaryFilterStrength = 0;  // 0..1, eases in/out around hacker mask
+  let particles = [];           // shared particle system
   let shootFlash = 0;           // 0..1 flash intensity after gun shoot
-  let smoothFace = null;        // smoothed face bbox {cx,cy,angle,w,h}
+  let shockRing = null;         // { start, duration } expanding shockwave
+  let shakeFrames = 0;          // screen-shake countdown
+  let smoothFace = null;        // smoothed face bbox {cx,cy,angle,eyeDist}
   const noiseCanvas = document.createElement('canvas');
   const noiseCtx = noiseCanvas.getContext('2d');
   noiseCanvas.width = 160; noiseCanvas.height = 90;
 
   /* ================= Helpers ================= */
   function lerp(a,b,t){ return a + (b-a)*t; }
-  function lerpPt(prev, next, t){
-    if(!prev) return {x:next.x, y:next.y};
-    return { x:lerp(prev.x,next.x,t), y:lerp(prev.y,next.y,t) };
-  }
   function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
   function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
   function easeOutCubic(t){ return 1 - Math.pow(1-t,3); }
+  function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
 
   // finger tip/pip landmark pairs (thumb, index, middle, ring, pinky)
   const FINGER_DEFS = [
-    { name:'thumb',  tip:4,  pip:3  }, // thumb (uses IP joint)
+    { name:'thumb',  tip:4,  pip:3  },
     { name:'index',  tip:8,  pip:6  },
     { name:'middle', tip:12, pip:10 },
     { name:'ring',   tip:16, pip:14 },
@@ -366,51 +398,28 @@
       const tip = lm[f.tip], pip = lm[f.pip];
       const dTip = dist(tip, wrist);
       const dPip = dist(pip, wrist);
-      // a finger is "open" when its tip is meaningfully farther from the wrist
-      // than its pip joint -- curled/fisted fingers fail this test
       if(dTip > dPip * 1.08){ out.push({ finger:f.name, point:tip }); }
     }
     return out;
-  }
-
-  // among a set of points, find the pair that is farthest apart from each other
-  // (captures the natural span of whichever fingers happen to be open)
-  function farthestPair(points){
-    if(points.length === 0) return null;
-    if(points.length === 1) return [points[0], points[0]];
-    let maxD = -1, pair = [points[0], points[1]];
-    for(let i=0;i<points.length;i++){
-      for(let j=i+1;j<points.length;j++){
-        const d = dist(points[i], points[j]);
-        if(d > maxD){ maxD = d; pair = [points[i], points[j]]; }
-      }
-    }
-    return pair;
   }
 
   // pinch = thumb tip and index tip close together, relative to hand size (scale invariant)
   function pinchAmount(lm){
     const scale = dist(lm[0], lm[9]) || 0.001;
     const d = dist(lm[4], lm[8]);
-    return d/scale; // smaller = tighter pinch
+    return d/scale;
   }
   function isPinching(lm){ return pinchAmount(lm) < 0.42; }
 
-  // "gun" shape: index extended, middle/ring/pinky curled (thumb free)
+  // "finger gun" shape: thumb up + index extended, middle/ring/pinky curled into the palm
+  // (matches the classic hand-gun gesture — thumb acts as the hammer, index as the barrel)
   function isGunShape(lm){
     const ext = getExtendedFingertips(lm).map(e=>e.finger);
-    return ext.includes('index') && !ext.includes('middle') && !ext.includes('ring') && !ext.includes('pinky');
-  }
-
-  // is this hand's index finger roughly aiming toward the given face center (both in raw 0-1 landmark space)
-  function isAimingAt(lm, targetPt){
-    const mcp = lm[5], tip = lm[8];
-    const dir = { x: tip.x-mcp.x, y: tip.y-mcp.y };
-    const dirLen = Math.hypot(dir.x,dir.y) || 0.0001;
-    const toTarget = { x: targetPt.x-tip.x, y: targetPt.y-tip.y };
-    const tLen = Math.hypot(toTarget.x,toTarget.y) || 0.0001;
-    const cos = (dir.x*toTarget.x + dir.y*toTarget.y) / (dirLen*tLen);
-    return cos > 0.90; // within ~25 degrees
+    const indexOut  = ext.includes('index');
+    const middleIn  = !ext.includes('middle');
+    const ringIn    = !ext.includes('ring');
+    const pinkyIn   = !ext.includes('pinky');
+    return indexOut && middleIn && ringIn && pinkyIn;
   }
 
   function faceBBox(faceLm){
@@ -423,7 +432,7 @@
   }
 
   function showToast(msg){
-    toastEl.textContent = msg;
+    toastTextEl.textContent = msg;
     toastEl.classList.add('show');
     clearTimeout(showToast._t);
     showToast._t = setTimeout(()=>toastEl.classList.remove('show'), 1800);
@@ -450,7 +459,7 @@
       minDetectionConfidence: 0.65,
       minTrackingConfidence: 0.6
     });
-    handsModel.onResults(onResults);
+    handsModel.onResults((r)=>{ lastResults = r; });
   }
 
   function initFace(){
@@ -470,7 +479,7 @@
     loadingEl.style.display = 'flex';
     loadingEl.style.opacity = '1';
     errorEl.style.display = 'none';
-    statusText.textContent = 'Menyiapkan…';
+    statusText.textContent = 'Menyiapkan';
     statusEl.classList.remove('live');
 
     try{
@@ -491,7 +500,6 @@
       camera = new Camera(videoEl, {
         onFrame: async () => {
           if(handsModel) await handsModel.send({image: videoEl});
-          // run face mesh on every other frame to keep frame rate high
           faceFrameToggle = !faceFrameToggle;
           if(faceModel && faceFrameToggle) await faceModel.send({image: videoEl});
         },
@@ -518,79 +526,7 @@
 
   retryBtn.addEventListener('click', startCamera);
 
-  /* ================= Hand result processing ================= */
-  function onResults(results){
-    lastResults = results;
-  }
-
-  function updateSmoothState(){
-    // decay life first
-    smooth.left.life  = Math.max(0, smooth.left.life  - 1);
-    smooth.right.life = Math.max(0, smooth.right.life - 1);
-
-    if(lastResults && lastResults.multiHandLandmarks && lastResults.multiHandLandmarks.length){
-      const hands = lastResults.multiHandLandmarks.map(lm=>{
-        // find whichever fingers are currently open (excludes curled/fisted fingers)
-        const extended = getExtendedFingertips(lm).map(e=>e.point);
-        // use the two open fingertips that are farthest apart to define this hand's edge
-        const pair = extended.length ? farthestPair(extended) : [lm[9], lm[9]]; // fallback: palm center if fist
-        // sort by y so "top" is consistently the higher point on screen
-        pair.sort((a,b)=>a.y-b.y);
-        const rawTop = pair[0], rawBottom = pair[1];
-
-        let cx = 0;
-        for(const p of lm) cx += p.x;
-        cx /= lm.length;
-        // account for mirroring in display space
-        const dispX = mirrored ? (1-cx) : cx;
-        return { rawTop, rawBottom, dispX };
-      });
-      hands.sort((a,b)=>a.dispX-b.dispX);
-
-      const assign = (slot, h)=>{
-        if(!h) return;
-        const flip = (p)=> ({ x: mirrored ? (1-p.x) : p.x, y: p.y });
-        const top = flip(h.rawTop), bottom = flip(h.rawBottom);
-        smooth[slot].top    = lerpPt(smooth[slot].top, top, SMOOTH_FACTOR);
-        smooth[slot].bottom = lerpPt(smooth[slot].bottom, bottom, SMOOTH_FACTOR);
-        smooth[slot].active = true;
-        smooth[slot].life = LIFE_DECAY;
-      };
-
-      if(hands.length === 1){
-        // Hysteresis: stick with whichever slot this hand was already feeding,
-        // only switch if it is now clearly (by a margin) closer to the other slot.
-        // This fixes the single-hand jitter/misassignment issue.
-        const h = hands[0];
-        const hx = mirrored ? (1-h.rawTop.x) : h.rawTop.x;
-        const distLeft  = smooth.left.top  ? Math.abs(smooth.left.top.x  - hx) : Infinity;
-        const distRight = smooth.right.top ? Math.abs(smooth.right.top.x - hx) : Infinity;
-
-        let targetSlot;
-        if(!smooth.left.active && !smooth.right.active){
-          // nothing active yet: decide purely by screen half
-          targetSlot = hx < 0.5 ? 'left' : 'right';
-        } else if(smooth.left.active && !smooth.right.active){
-          targetSlot = 'left';
-        } else if(!smooth.left.active && smooth.right.active){
-          targetSlot = 'right';
-        } else {
-          // both were active, now only one hand seen: keep feeding the closer one
-          targetSlot = distLeft <= distRight ? 'left' : 'right';
-        }
-        assign(targetSlot, h);
-        // let the other slot's life decay naturally (already ticked down above)
-      } else {
-        assign('left', hands[0]);
-        assign('right', hands[hands.length-1]);
-      }
-    }
-
-    smooth.left.active  = smooth.left.life  > 0;
-    smooth.right.active = smooth.right.life > 0;
-  }
-
-  /* ================= Drawing ================= */
+  /* ================= Drawing helpers ================= */
   function drawBackgroundVideo(vw, vh){
     octx.save();
     if(mirrored){ octx.translate(vw,0); octx.scale(-1,1); }
@@ -600,98 +536,6 @@
 
   function toCanvasSpace(pt, vw, vh, scale, offX, offY){
     return { x: offX + pt.x*vw*scale, y: offY + pt.y*vh*scale };
-  }
-
-  function quadPath(p, LT,LB,RT,RB){
-    p.moveTo(LT.x,LT.y);
-    p.lineTo(RT.x,RT.y);
-    p.lineTo(RB.x,RB.y);
-    p.lineTo(LB.x,LB.y);
-    p.closePath();
-  }
-
-  function drawPortal(cw, ch){
-    const vw = offscreen.width, vh = offscreen.height;
-    // cover-fit mapping from video space to canvas space
-    const scale = Math.max(cw/vw, ch/vh);
-    const offX = (cw - vw*scale)/2;
-    const offY = (ch - vh*scale)/2;
-
-    const LT = toCanvasSpace(smooth.left.top,    vw,vh,scale,offX,offY);
-    const LB = toCanvasSpace(smooth.left.bottom, vw,vh,scale,offX,offY);
-    const RT = toCanvasSpace(smooth.right.top,   vw,vh,scale,offX,offY);
-    const RB = toCanvasSpace(smooth.right.bottom,vw,vh,scale,offX,offY);
-
-    const theme = THEMES[currentTheme];
-
-    ctx.save();
-    const path = new Path2D();
-    quadPath(path, LT,LB,RT,RB);
-    ctx.clip(path);
-
-    // duotone / x-ray video content inside the portal
-    ctx.filter = `invert(1) saturate(${theme.sat}) hue-rotate(${theme.hue}deg) brightness(1.15) contrast(1.05)`;
-    ctx.drawImage(offscreen, offX, offY, vw*scale, vh*scale);
-    ctx.filter = 'none';
-
-    // rainbow gradient tint following the top->bottom axis of the quad
-    const midTop = {x:(LT.x+RT.x)/2, y:(LT.y+RT.y)/2};
-    const midBot = {x:(LB.x+RB.x)/2, y:(LB.y+RB.y)/2};
-    const grad = ctx.createLinearGradient(midTop.x, midTop.y, midBot.x, midBot.y);
-    theme.stops.forEach(([off,color])=>grad.addColorStop(off,color));
-    ctx.globalCompositeOperation = 'overlay';
-    ctx.globalAlpha = 0.65;
-    ctx.fillStyle = grad;
-    ctx.fill(path);
-
-    // gentle scanline shimmer
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = 0.18;
-    const shimmerT = (Math.sin(tGlobal*0.0022)+1)/2;
-    const shimmerY = lerp(midTop.y, midBot.y, shimmerT);
-    const shimmerGrad = ctx.createLinearGradient(0, shimmerY-40, 0, shimmerY+40);
-    shimmerGrad.addColorStop(0,'rgba(255,255,255,0)');
-    shimmerGrad.addColorStop(0.5,'rgba(255,255,255,0.9)');
-    shimmerGrad.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle = shimmerGrad;
-    ctx.fillRect(Math.min(LT.x,LB.x)-20, shimmerY-40, Math.max(RT.x,RB.x)-Math.min(LT.x,LB.x)+40, 80);
-
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.restore();
-
-    // glowing neon border, edge by edge
-    const edges = [
-      { a:LT, b:RT, color: theme.border[0] }, // top
-      { a:RT, b:RB, color: theme.border[2] }, // right
-      { a:RB, b:LB, color: theme.border[3] }, // bottom
-      { a:LB, b:LT, color: theme.border[1] }, // left
-    ];
-    ctx.save();
-    ctx.lineWidth = 4.5;
-    ctx.lineCap = 'round';
-    for(const e of edges){
-      ctx.shadowBlur = 18;
-      ctx.shadowColor = e.color;
-      ctx.strokeStyle = e.color;
-      ctx.beginPath();
-      ctx.moveTo(e.a.x,e.a.y);
-      ctx.lineTo(e.b.x,e.b.y);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // corner accents
-    ctx.save();
-    [LT,RT,RB,LB].forEach((c,i)=>{
-      ctx.beginPath();
-      ctx.arc(c.x,c.y, 5,0,Math.PI*2);
-      ctx.fillStyle = theme.border[i];
-      ctx.shadowBlur = 14;
-      ctx.shadowColor = theme.border[i];
-      ctx.fill();
-    });
-    ctx.restore();
   }
 
   // small glowing marker on every fingertip that is currently open/extended
@@ -739,8 +583,313 @@
     ctx.restore();
   }
 
-  /* ================= Gestures: pinch -> code rain + mask, gun -> shoot -> mask v2 ================= */
+  /* ================= Dynamic finger-count polygon shapes ================= */
+  // Rule set (as requested):
+  //  2 fingers -> line, 3 -> triangle, 4 -> square, 5 -> pentagon.
+  //  Beyond 5, split off 4-point groups (squares) until <=5 points remain,
+  //  e.g. 6 => [4,2], 7 => [4,3], 8 => [4,4], 9 => [4,5], 10 => [4,4,2].
+  function decomposeGroups(n){
+    const groups = [];
+    let remaining = n;
+    while(remaining > 5){ groups.push(4); remaining -= 4; }
+    if(remaining > 0) groups.push(remaining);
+    return groups;
+  }
 
+  function collectExtendedPoints(cw,ch){
+    if(!lastResults || !lastResults.multiHandLandmarks) return [];
+    const vw = offscreen.width, vh = offscreen.height;
+    const scale = Math.max(cw/vw, ch/vh);
+    const offX = (cw - vw*scale)/2;
+    const offY = (ch - vh*scale)/2;
+    const pts = [];
+    for(const lm of lastResults.multiHandLandmarks){
+      const ext = getExtendedFingertips(lm);
+      for(const e of ext){
+        const raw = e.point;
+        const p = { x: mirrored ? (1-raw.x) : raw.x, y: raw.y };
+        pts.push(toCanvasSpace(p, vw,vh,scale,offX,offY));
+      }
+    }
+    return pts;
+  }
+
+  function sortAroundCentroid(pts){
+    let cx=0, cy=0;
+    for(const p of pts){ cx+=p.x; cy+=p.y; }
+    cx/=pts.length; cy/=pts.length;
+    return pts.slice().sort((a,b)=> Math.atan2(a.y-cy,a.x-cx) - Math.atan2(b.y-cy,b.x-cx));
+  }
+
+  let glitchTimer = 0, glitchActive = false, glitchHue = 0, glitchOffset = {x:0,y:0};
+  function updateGlitch(){
+    glitchTimer++;
+    if(glitchTimer > 70 + Math.random()*50){
+      glitchTimer = 0;
+      glitchActive = true;
+      glitchHue = Math.random()*360;
+      glitchOffset = { x:(Math.random()-0.5)*14, y:(Math.random()-0.5)*14 };
+      setTimeout(()=>{ glitchActive = false; }, 90);
+    }
+  }
+
+  function drawFingerShapes(cw,ch){
+    const pts = collectExtendedPoints(cw,ch);
+    const n = pts.length;
+    if(n < 2){ hintEl.style.opacity = '1'; return; }
+    hintEl.style.opacity = '0';
+
+    const groups = decomposeGroups(n);
+    const theme = THEMES[currentTheme];
+    let cursor = 0;
+
+    groups.forEach((size, gi) => {
+      const groupPts = sortAroundCentroid(pts.slice(cursor, cursor+size));
+      cursor += size;
+      const groupHue = (theme.hueBase + gi*95 + tGlobal*0.012) % 360;
+
+      ctx.save();
+
+      // soft translucent fill for shapes with 3+ points
+      if(groupPts.length >= 3){
+        ctx.beginPath();
+        groupPts.forEach((p,i)=> i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+        ctx.closePath();
+        const fillGrad = ctx.createLinearGradient(groupPts[0].x, groupPts[0].y, groupPts[groupPts.length-1].x, groupPts[groupPts.length-1].y);
+        fillGrad.addColorStop(0, `hsla(${groupHue},95%,60%,0.16)`);
+        fillGrad.addColorStop(1, `hsla(${(groupHue+80)%360},95%,60%,0.16)`);
+        ctx.fillStyle = fillGrad;
+        ctx.fill();
+      }
+
+      // edges — each edge cycles its own hue over time so the shape never reads as one flat color
+      const edgeCount = groupPts.length >= 2 ? groupPts.length : 1;
+      const loopEdges = groupPts.length >= 3 ? edgeCount : 1;
+      for(let i=0;i<loopEdges;i++){
+        const a = groupPts[i];
+        const b = groupPts[(i+1) % groupPts.length];
+        if(groupPts.length === 2 && i>0) break;
+        const edgeHue = (groupHue + i*46 + tGlobal*0.05) % 360;
+        const color = `hsl(${edgeHue},95%,62%)`;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = color;
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(a.x,a.y);
+        ctx.lineTo(b.x,b.y);
+        ctx.stroke();
+
+        // subtle random glitch duplicate for visual texture
+        if(glitchActive){
+          ctx.save();
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = `hsl(${(glitchHue+i*30)%360},95%,65%)`;
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.moveTo(a.x+glitchOffset.x, a.y+glitchOffset.y);
+          ctx.lineTo(b.x+glitchOffset.x, b.y+glitchOffset.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // vertex nodes
+      groupPts.forEach((p,i)=>{
+        const vHue = (groupHue + i*46 + tGlobal*0.05) % 360;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,5,0,Math.PI*2);
+        ctx.fillStyle = `hsl(${vHue},100%,72%)`;
+        ctx.shadowBlur = 12; ctx.shadowColor = `hsl(${vHue},100%,65%)`;
+        ctx.fill();
+      });
+
+      ctx.restore();
+    });
+  }
+
+  /* ================= Gestures ================= */
+  function updateGestures(ts, cw, ch){
+    let anyPinch = false, anyGun = false, pinchPointCanvas = null, gunPointCanvas = null;
+
+    if(lastResults && lastResults.multiHandLandmarks){
+      const vw = offscreen.width, vh = offscreen.height;
+      const scale = Math.max(cw/vw, ch/vh);
+      const offX = (cw - vw*scale)/2;
+      const offY = (ch - vh*scale)/2;
+
+      for(const lm of lastResults.multiHandLandmarks){
+        if(isPinching(lm)){
+          anyPinch = true;
+          const mid = { x:(lm[4].x+lm[8].x)/2, y:(lm[4].y+lm[8].y)/2 };
+          const p = { x: mirrored ? (1-mid.x):mid.x, y: mid.y };
+          pinchPointCanvas = toCanvasSpace(p, vw,vh,scale,offX,offY);
+        }
+        if(isGunShape(lm)){
+          anyGun = true;
+          const tip = lm[8];
+          const p = { x: mirrored ? (1-tip.x):tip.x, y: tip.y };
+          gunPointCanvas = toCanvasSpace(p, vw,vh,scale,offX,offY);
+        }
+      }
+    }
+
+    // ---- pinch hold -> toggle mask on/off with a magic swirl transition ----
+    if(anyPinch){
+      if(pinchHoldStart===null) pinchHoldStart = ts;
+      pinchActive = true;
+      if(pinchPointCanvas) lastPinchCanvasPoint = pinchPointCanvas;
+    } else {
+      if(pinchActive && pinchHoldStart!==null && (ts-pinchHoldStart) >= 1800){
+        triggerPinchToggle();
+      }
+      pinchActive = false;
+      pinchHoldStart = null;
+    }
+
+    // ---- finger-gun hold -> transform into hacker mask ----
+    if(anyGun){
+      if(gunHoldStart===null) gunHoldStart = ts;
+      gunActive = true;
+      if(gunPointCanvas) lastGunCanvasPoint = gunPointCanvas;
+      if((ts-gunHoldStart) >= 1400 && !gunFiredThisHold){
+        triggerGunShoot();
+        gunFiredThisHold = true;
+      }
+    } else {
+      gunHoldStart = null;
+      gunActive = false;
+      gunFiredThisHold = false;
+    }
+
+    const targetScary = (maskOn && maskType==='hacker') ? 1 : 0;
+    scaryFilterStrength = lerp(scaryFilterStrength, targetScary, 0.05);
+    shootFlash = Math.max(0, shootFlash - 0.045);
+    if(shakeFrames > 0) shakeFrames--;
+  }
+
+  function triggerPinchToggle(){
+    const origin = lastPinchCanvasPoint || { x:window.innerWidth/2, y:window.innerHeight/2 };
+    spawnMagicSwirl(origin);
+    if(maskOn){
+      maskTransition = { type:'outro', start: performance.now(), duration: 750 };
+      maskOn = false;
+      showToast('Masker dinonaktifkan');
+    } else {
+      maskOn = true;
+      maskTransition = { type:'intro', start: performance.now(), duration: 850 };
+      showToast(maskType==='hacker' ? 'Masker hacker diaktifkan' : 'Masker diaktifkan');
+    }
+  }
+
+  function triggerGunShoot(){
+    shootFlash = 1;
+    shakeFrames = 10;
+    const origin = lastGunCanvasPoint || { x:window.innerWidth/2, y:window.innerHeight*0.35 };
+    spawnShootSparks(origin);
+    shockRing = { start: performance.now(), duration: 700, origin };
+    maskType = 'hacker';
+    maskOn = true;
+    maskTransition = { type:'shoot', start: performance.now(), duration: 600 };
+    showToast('Mode hacker diaktifkan');
+  }
+
+  /* ---- particle system: magic swirl + shoot sparks share one pool ---- */
+  function spawnMagicSwirl(origin){
+    const n = 46;
+    for(let i=0;i<n;i++){
+      const ang = (Math.PI*2/n)*i + Math.random()*0.3;
+      const radius = 26 + Math.random()*18;
+      particles.push({
+        type:'magic',
+        cx: origin.x, cy: origin.y,
+        ang, radius,
+        spin: 0.05 + Math.random()*0.05,
+        rise: 0.6 + Math.random()*0.8,
+        size: 2 + Math.random()*2.4,
+        hue: Math.random()*360,
+        life: 0, maxLife: 55 + Math.random()*35
+      });
+    }
+  }
+  function spawnShootSparks(origin){
+    const n = 55;
+    for(let i=0;i<n;i++){
+      const ang = Math.random()*Math.PI*2;
+      const spd = 3.5 + Math.random()*8;
+      particles.push({
+        type:'spark',
+        x: origin.x, y: origin.y,
+        vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+        g: 0.16,
+        size: 2 + Math.random()*3.2,
+        hue: 10 + Math.random()*40,
+        life: 0, maxLife: 32 + Math.random()*22
+      });
+    }
+  }
+  function updateParticles(){
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.life++;
+      if(p.type==='spark'){
+        p.vy += p.g;
+        p.x += p.vx; p.y += p.vy;
+      } else if(p.type==='magic'){
+        p.ang += p.spin;
+        p.cy -= p.rise;
+      }
+      if(p.life > p.maxLife || (p.y!==undefined && p.y > window.innerHeight+60)){ particles.splice(i,1); }
+    }
+  }
+  function drawParticles(){
+    ctx.save();
+    for(const p of particles){
+      const t = p.life / p.maxLife;
+      const alpha = clamp(1-t, 0, 1);
+      if(p.type==='magic'){
+        const x = p.cx + Math.cos(p.ang)*p.radius*(1-t*0.3);
+        const y = p.cy + Math.sin(p.ang)*p.radius*(1-t*0.3);
+        ctx.beginPath();
+        ctx.arc(x,y,p.size,0,Math.PI*2);
+        ctx.fillStyle = `hsla(${p.hue},95%,72%,${alpha})`;
+        ctx.shadowBlur = 10; ctx.shadowColor = `hsla(${p.hue},95%,65%,1)`;
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(p.x,p.y, p.size*(1-t*0.4), 0, Math.PI*2);
+        ctx.fillStyle = `hsla(${p.hue},95%,60%,${alpha})`;
+        ctx.shadowBlur = 10; ctx.shadowColor = `hsla(${p.hue},95%,55%,1)`;
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawShockRing(cw,ch){
+    if(!shockRing) return;
+    const t = clamp((performance.now()-shockRing.start)/shockRing.duration, 0, 1);
+    if(t>=1){ shockRing = null; return; }
+    const r = easeOutCubic(t) * Math.max(cw,ch) * 0.55;
+    const alpha = 1-t;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(shockRing.origin.x, shockRing.origin.y, r, 0, Math.PI*2);
+    ctx.lineWidth = 6*(1-t)+1;
+    ctx.strokeStyle = `rgba(61,241,255,${alpha*0.7})`;
+    ctx.shadowBlur = 24; ctx.shadowColor = '#3df1ff';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(shockRing.origin.x, shockRing.origin.y, r*0.7, 0, Math.PI*2);
+    ctx.lineWidth = 3*(1-t)+1;
+    ctx.strokeStyle = `rgba(255,90,60,${alpha*0.6})`;
+    ctx.shadowBlur = 18; ctx.shadowColor = '#ff5a3c';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ---- face tracking helper for masks ---- */
   function faceCenterCanvas(cw,ch){
     if(!lastFaceResults || !lastFaceResults.multiFaceLandmarks || !lastFaceResults.multiFaceLandmarks.length) return null;
     const lm = lastFaceResults.multiFaceLandmarks[0];
@@ -751,7 +900,6 @@
     const offY = (ch - vh*scale)/2;
     const p = { x: mirrored ? (1-bb.cx) : bb.cx, y: bb.cy };
     const c = toCanvasSpace(p, vw,vh,scale,offX,offY);
-    // eye landmarks for roll angle (33 = left eye outer, 263 = right eye outer)
     const eL = lm[33], eR = lm[263];
     const eLp = { x: mirrored ? (1-eL.x):eL.x, y:eL.y };
     const eRp = { x: mirrored ? (1-eR.x):eR.x, y:eR.y };
@@ -759,160 +907,12 @@
     const eRc = toCanvasSpace(eRp, vw,vh,scale,offX,offY);
     const angle = Math.atan2(eRc.y-eLc.y, eRc.x-eLc.x);
     const eyeDist = dist(eLc,eRc);
-    return { cx:c.x, cy:c.y, angle, eyeDist, w: bb.w*vw*scale, h: bb.h*vh*scale };
-  }
-
-  function updateGestures(ts, cw, ch){
-    let anyPinch = false, anyGun = false, pinchPointCanvas = null;
-
-    if(lastResults && lastResults.multiHandLandmarks){
-      const vw = offscreen.width, vh = offscreen.height;
-      const scale = Math.max(cw/vw, ch/vh);
-      const offX = (cw - vw*scale)/2;
-      const offY = (ch - vh*scale)/2;
-
-      let faceRaw = null;
-      if(lastFaceResults && lastFaceResults.multiFaceLandmarks && lastFaceResults.multiFaceLandmarks.length){
-        faceRaw = faceBBox(lastFaceResults.multiFaceLandmarks[0]);
-      }
-
-      for(const lm of lastResults.multiHandLandmarks){
-        if(isPinching(lm)){
-          anyPinch = true;
-          const mid = { x:(lm[4].x+lm[8].x)/2, y:(lm[4].y+lm[8].y)/2 };
-          const p = { x: mirrored ? (1-mid.x):mid.x, y: mid.y };
-          pinchPointCanvas = toCanvasSpace(p, vw,vh,scale,offX,offY);
-        }
-        if(faceRaw && isGunShape(lm) && isAimingAt(lm, faceRaw)){
-          anyGun = true;
-        }
-      }
-    }
-
-    // ---- pinch hold -> toggle mask + spawn code-rain burst on release ----
-    if(anyPinch){
-      if(pinchHoldStart===null) pinchHoldStart = ts;
-      pinchActive = true;
-      if(pinchPointCanvas) lastPinchCanvasPoint = pinchPointCanvas;
-    } else {
-      if(pinchActive && pinchHoldStart!==null && (ts-pinchHoldStart) >= 3000){
-        triggerPinchRelease();
-      }
-      pinchActive = false;
-      pinchHoldStart = null;
-    }
-
-    // ---- gun aim hold -> shoot transition -> mask v2 ----
-    if(anyGun){
-      if(gunHoldStart===null) gunHoldStart = ts;
-      gunActive = true;
-      if((ts-gunHoldStart) >= 2000 && !gunFiredThisHold){
-        triggerGunShoot();
-        gunFiredThisHold = true;
-      }
-    } else {
-      gunHoldStart = null;
-      gunActive = false;
-      gunFiredThisHold = false;
-    }
-
-    // ease scary filter strength toward target (1 while v2, else 0)
-    const targetScary = (maskState==='v2') ? 1 : 0;
-    scaryFilterStrength = lerp(scaryFilterStrength, targetScary, 0.04);
-    shootFlash = Math.max(0, shootFlash - 0.045);
-  }
-
-  function triggerPinchRelease(){
-    const origin = lastPinchCanvasPoint || { x:window.innerWidth/2, y:window.innerHeight/2 };
-    spawnCodeBurst(origin);
-    if(maskState === 'off'){
-      maskState = 'v1';
-      maskTransition = { type:'intro', start: performance.now(), duration: 900 };
-      showToast('🧬 Topeng digital diaktifkan');
-    } else {
-      maskTransition = { type:'outro', start: performance.now(), duration: 700 };
-      showToast('Topeng dilepas');
-    }
-  }
-
-  function triggerGunShoot(){
-    shootFlash = 1;
-    const origin = lastPinchCanvasPoint || { x:window.innerWidth/2, y:window.innerHeight*0.35 };
-    spawnShootSparks(origin);
-    maskState = 'v2';
-    maskTransition = { type:'shoot', start: performance.now(), duration: 650 };
-    showToast('💥 Topeng V2: YNA STORE mode');
-  }
-
-  /* ---- particle system: code-rain burst + shoot sparks share one pool ---- */
-  const CODE_CHARS = '01アイウエオカキクケコ$#%&<>{}[]/\\'.split('');
-  function spawnCodeBurst(origin){
-    const n = 70;
-    for(let i=0;i<n;i++){
-      const ang = -Math.PI/2 + (Math.random()-0.5)*Math.PI*1.4;
-      const spd = 2 + Math.random()*4;
-      particles.push({
-        type:'code',
-        x: origin.x + (Math.random()-0.5)*20,
-        y: origin.y + (Math.random()-0.5)*20,
-        vx: Math.cos(ang)*spd*0.4,
-        vy: Math.sin(ang)*spd - 2,
-        g: 0.14 + Math.random()*0.08,
-        char: CODE_CHARS[(Math.random()*CODE_CHARS.length)|0],
-        size: 12 + Math.random()*10,
-        life: 0, maxLife: 90 + Math.random()*60,
-        hue: currentTheme
-      });
-    }
-  }
-  function spawnShootSparks(origin){
-    const n = 40;
-    for(let i=0;i<n;i++){
-      const ang = Math.random()*Math.PI*2;
-      const spd = 3 + Math.random()*7;
-      particles.push({
-        type:'spark',
-        x: origin.x, y: origin.y,
-        vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
-        g: 0.18,
-        size: 2 + Math.random()*3,
-        life: 0, maxLife: 30 + Math.random()*20
-      });
-    }
-  }
-  function updateParticles(){
-    for(let i=particles.length-1;i>=0;i--){
-      const p = particles[i];
-      p.vy += p.g;
-      p.x += p.vx; p.y += p.vy;
-      p.life++;
-      if(p.life > p.maxLife || p.y > window.innerHeight+60){ particles.splice(i,1); }
-    }
-  }
-  function drawParticles(){
-    ctx.save();
-    for(const p of particles){
-      const t = p.life / p.maxLife;
-      const alpha = clamp(1-t, 0, 1);
-      if(p.type==='code'){
-        ctx.font = `${p.size}px monospace`;
-        ctx.fillStyle = `rgba(57,255,143,${alpha})`;
-        ctx.shadowBlur = 8; ctx.shadowColor = '#39ff8f';
-        ctx.fillText(p.char, p.x, p.y);
-      } else {
-        ctx.beginPath();
-        ctx.arc(p.x,p.y, p.size*(1-t*0.4), 0, Math.PI*2);
-        ctx.fillStyle = `rgba(255,180,80,${alpha})`;
-        ctx.shadowBlur = 10; ctx.shadowColor = '#ff8a2e';
-        ctx.fill();
-      }
-    }
-    ctx.restore();
+    return { cx:c.x, cy:c.y, angle, eyeDist };
   }
 
   /* ---- mask rendering ---- */
   function drawMask(cw,ch){
-    if(maskState==='off' && !maskTransition) return;
+    if(!maskOn && !maskTransition) return;
     const face = faceCenterCanvas(cw,ch);
     if(!face) return;
 
@@ -921,21 +921,19 @@
           angle:lerp(smoothFace.angle,face.angle,0.35), eyeDist:lerp(smoothFace.eyeDist,face.eyeDist,0.35) }
       : { cx:face.cx, cy:face.cy, angle:face.angle, eyeDist:face.eyeDist };
 
-    let alpha = 1;
-    let styleKey = maskState;
+    let alpha = 1, scaleMul = 1;
+    let styleKey = maskType;
     if(maskTransition){
       const t = clamp((performance.now()-maskTransition.start)/maskTransition.duration, 0, 1);
-      if(maskTransition.type==='intro'){ alpha = easeOutCubic(t); styleKey='v1'; }
-      else if(maskTransition.type==='shoot'){ alpha = easeOutCubic(t); styleKey='v2'; }
-      else if(maskTransition.type==='outro'){ alpha = 1-easeOutCubic(t); styleKey = (maskState==='off'?'v1':maskState); }
-      if(t>=1){
-        if(maskTransition.type==='outro') maskState='off';
-        maskTransition = null;
-      }
+      const e = easeInOutCubic(t);
+      if(maskTransition.type==='intro'){ alpha = e; scaleMul = lerp(0.6,1,e); }
+      else if(maskTransition.type==='shoot'){ alpha = e; scaleMul = lerp(1.4,1,e); styleKey='hacker'; }
+      else if(maskTransition.type==='outro'){ alpha = 1-e; scaleMul = lerp(1,0.6,e); }
+      if(t>=1) maskTransition = null;
     }
-    if(maskState==='off' && !maskTransition) return;
+    if(!maskOn && !maskTransition) return;
 
-    const w = Math.max(60, smoothFace.eyeDist * 3.1);
+    const w = Math.max(60, smoothFace.eyeDist * 3.1) * scaleMul;
     const h = w * 0.62;
 
     ctx.save();
@@ -943,217 +941,239 @@
     ctx.rotate(smoothFace.angle);
     ctx.globalAlpha = clamp(alpha,0,1);
 
-    if(styleKey==='v2'){ drawMaskV2(w,h); } else { drawMaskV1(w,h); }
+    if(styleKey==='hacker'){ drawMaskHacker(w,h); } else { drawMaskClown(w,h); }
 
     ctx.restore();
   }
 
-  function drawMaskV1(w,h){
-    // futuristic cyan visor
+  // Clown mask — playful, colorful, lightly glowing outline with a round red nose.
+  function drawMaskClown(w,h){
     ctx.save();
     const path = new Path2D();
-    path.moveTo(-w/2, -h*0.15);
-    path.lineTo(-w/2+14, -h/2);
-    path.lineTo(w/2-14, -h/2);
-    path.lineTo(w/2, -h*0.15);
-    path.lineTo(w/2-10, h*0.42);
-    path.lineTo(0, h*0.58);
-    path.lineTo(-w/2+10, h*0.42);
+    path.moveTo(-w/2, -h*0.1);
+    path.quadraticCurveTo(-w/2, -h/2, 0, -h*0.5);
+    path.quadraticCurveTo(w/2, -h/2, w/2, -h*0.1);
+    path.quadraticCurveTo(w/2, h*0.5, 0, h*0.6);
+    path.quadraticCurveTo(-w/2, h*0.5, -w/2, -h*0.1);
     path.closePath();
 
-    ctx.fillStyle = 'rgba(6,14,22,0.55)';
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
     ctx.fill(path);
     ctx.clip(path);
 
-    // animated scan lines
-    const stripeH = 6;
-    const speed = (tGlobal*0.09) % (stripeH*2);
-    ctx.globalAlpha *= 0.35;
-    for(let y=-h/2-stripeH; y<h/2; y+=stripeH*2){
-      ctx.fillStyle = '#3df1ff';
-      ctx.fillRect(-w/2, y+speed, w, stripeH);
-    }
-    ctx.globalAlpha /= 0.35;
+    // eyebrows
+    ctx.lineWidth = 3; ctx.lineCap='round';
+    ctx.strokeStyle = '#39ff8f'; ctx.shadowBlur = 8; ctx.shadowColor = '#39ff8f';
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.arc(side*w*0.22, -h*0.14, w*0.11, Math.PI*1.1, Math.PI*1.9);
+      ctx.stroke();
+    });
 
-    // eye lenses
-    ctx.globalAlpha = 0.9;
-    [-w*0.24, w*0.24].forEach(ex=>{
-      const g = ctx.createRadialGradient(ex,0,2, ex,0,w*0.13);
-      g.addColorStop(0,'rgba(255,255,255,0.9)');
-      g.addColorStop(0.4,'rgba(61,241,255,0.85)');
+    // eyes
+    [-1,1].forEach(side=>{
+      const g = ctx.createRadialGradient(side*w*0.22,0,2, side*w*0.22,0,w*0.1);
+      g.addColorStop(0,'rgba(255,255,255,0.95)');
+      g.addColorStop(0.5,'rgba(61,241,255,0.85)');
       g.addColorStop(1,'rgba(61,241,255,0)');
       ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(ex,0,w*0.13,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(side*w*0.22,0,w*0.09,0,Math.PI*2); ctx.fill();
     });
+
+    // big smile
+    ctx.beginPath();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#ff2ea6'; ctx.shadowBlur = 10; ctx.shadowColor = '#ff2ea6';
+    ctx.moveTo(-w*0.28, h*0.18);
+    ctx.quadraticCurveTo(0, h*0.42, w*0.28, h*0.18);
+    ctx.stroke();
+    ctx.restore();
+
+    // red nose
+    ctx.save();
+    const ng = ctx.createRadialGradient(0,-h*0.02,2, 0,-h*0.02,w*0.075);
+    ng.addColorStop(0,'#ffdede');
+    ng.addColorStop(0.5,'#ff3d5b');
+    ng.addColorStop(1,'#c4002b');
+    ctx.fillStyle = ng;
+    ctx.shadowBlur = 14; ctx.shadowColor = '#ff2e5b';
+    ctx.beginPath(); ctx.arc(0,-h*0.02,w*0.075,0,Math.PI*2); ctx.fill();
     ctx.restore();
 
     // outline glow
     ctx.save();
     ctx.lineWidth = 2.5;
-    ctx.strokeStyle = '#3df1ff';
-    ctx.shadowBlur = 16; ctx.shadowColor = '#3df1ff';
+    ctx.strokeStyle = '#ffe83d';
+    ctx.shadowBlur = 14; ctx.shadowColor = '#ffe83d';
     ctx.stroke(path);
+    ctx.restore();
+
+    drawWatermark(w,h,'#ffe83d');
+  }
+
+  // Hacker mask — Guy Fawkes / Anonymous-style glowing wireframe, matching the reference art.
+  function drawMaskHacker(w,h){
+    const glowColor = '#3df1ff';
+    ctx.save();
+    ctx.lineWidth = Math.max(2.2, w*0.012);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = glowColor;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = glowColor;
+
+    // face outline
+    ctx.beginPath();
+    ctx.moveTo(-w*0.36, -h*0.32);
+    ctx.quadraticCurveTo(-w*0.42, 0, -w*0.28, h*0.32);
+    ctx.quadraticCurveTo(-w*0.14, h*0.58, 0, h*0.62);
+    ctx.quadraticCurveTo(w*0.14, h*0.58, w*0.28, h*0.32);
+    ctx.quadraticCurveTo(w*0.42, 0, w*0.36, -h*0.32);
+    ctx.quadraticCurveTo(0, -h*0.5, -w*0.36, -h*0.32);
+    ctx.stroke();
+
+    // thin arched eyebrows
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.moveTo(side*w*0.10, -h*0.18);
+      ctx.quadraticCurveTo(side*w*0.24, -h*0.30, side*w*0.34, -h*0.16);
+      ctx.stroke();
+    });
+
+    // narrow almond eyes
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.moveTo(side*w*0.10, -h*0.06);
+      ctx.quadraticCurveTo(side*w*0.22, -h*0.14, side*w*0.34, -h*0.05);
+      ctx.quadraticCurveTo(side*w*0.22, -h*0.01, side*w*0.10, -h*0.06);
+      ctx.stroke();
+    });
+
+    // curled mustache — two S-hooks meeting at the philtrum
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.moveTo(0, h*0.10);
+      ctx.quadraticCurveTo(side*w*0.16, h*0.06, side*w*0.30, h*0.14);
+      ctx.quadraticCurveTo(side*w*0.40, h*0.18, side*w*0.34, h*0.28);
+      ctx.quadraticCurveTo(side*w*0.30, h*0.20, side*w*0.20, h*0.20);
+      ctx.stroke();
+    });
+
+    // faint smile line under the mustache
+    ctx.beginPath();
+    ctx.moveTo(-w*0.14, h*0.22);
+    ctx.quadraticCurveTo(0, h*0.30, w*0.14, h*0.22);
+    ctx.stroke();
+
+    // pointed goatee
+    ctx.beginPath();
+    ctx.moveTo(-w*0.12, h*0.36);
+    ctx.quadraticCurveTo(0, h*0.62, w*0.12, h*0.36);
+    ctx.stroke();
+
+    ctx.restore();
+
+    // subtle inner glow wash
+    ctx.save();
+    ctx.globalAlpha = 0.10;
+    const g = ctx.createRadialGradient(0,0,w*0.05, 0,0,w*0.55);
+    g.addColorStop(0,'rgba(61,241,255,0.9)');
+    g.addColorStop(1,'rgba(61,241,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(0,0,w*0.5,h*0.6,0,0,Math.PI*2); ctx.fill();
     ctx.restore();
 
     drawWatermark(w,h,'#3df1ff');
   }
 
-  function drawMaskV2(w,h){
-    // aggressive angular red/orange mask
-    ctx.save();
-    const jag = 10;
-    const path = new Path2D();
-    path.moveTo(-w/2, -h*0.1);
-    path.lineTo(-w/2+18, -h*0.55);
-    path.lineTo(-w*0.1, -h*0.5);
-    path.lineTo(0, -h*0.62);
-    path.lineTo(w*0.1, -h*0.5);
-    path.lineTo(w/2-18, -h*0.55);
-    path.lineTo(w/2, -h*0.1);
-    path.lineTo(w/2-6, h*0.5);
-    path.lineTo(w*0.15, h*0.68);
-    path.lineTo(0, h*0.55);
-    path.lineTo(-w*0.15, h*0.68);
-    path.lineTo(-w/2+6, h*0.5);
-    path.closePath();
-
-    ctx.fillStyle = 'rgba(20,3,3,0.62)';
-    ctx.fill(path);
-    ctx.clip(path);
-
-    // glitchy displaced scan bands
-    for(let i=0;i<6;i++){
-      const y = -h/2 + (h/6)*i + (Math.sin(tGlobal*0.006+i)*4);
-      const dx = (Math.sin(tGlobal*0.02+i*3)) * 6;
-      ctx.fillStyle = `rgba(255,${40+i*10},40,0.16)`;
-      ctx.fillRect(-w/2+dx, y, w, h/6*0.5);
-    }
-
-    // eye slits glowing red
-    ctx.globalAlpha = 0.95;
-    [-w*0.22, w*0.22].forEach(ex=>{
-      const g = ctx.createRadialGradient(ex,-h*0.02,1, ex,-h*0.02,w*0.11);
-      g.addColorStop(0,'rgba(255,255,255,0.95)');
-      g.addColorStop(0.4,'rgba(255,60,40,0.9)');
-      g.addColorStop(1,'rgba(255,60,40,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.ellipse(ex,-h*0.02, w*0.13, h*0.07, 0,0,Math.PI*2); ctx.fill();
-    });
-    ctx.restore();
-
-    ctx.save();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#ff3d3d';
-    ctx.shadowBlur = 20; ctx.shadowColor = '#ff3d3d';
-    ctx.stroke(path);
-    ctx.restore();
-
-    drawWatermark(w,h,'#ff5b3d');
-  }
-
   function drawWatermark(w,h,color){
     ctx.save();
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.85;
     ctx.textAlign = 'center';
-    ctx.font = `600 ${Math.max(9,w*0.07)}px 'Segoe UI', system-ui, sans-serif`;
+    ctx.font = `600 ${Math.max(8,w*0.055)}px 'Segoe UI', system-ui, sans-serif`;
     ctx.fillStyle = color;
-    ctx.shadowBlur = 6; ctx.shadowColor = color;
+    ctx.shadowBlur = 5; ctx.shadowColor = color;
     ctx.letterSpacing = '2px';
-    ctx.fillText('YNA STORE', 0, h*0.5);
+    ctx.fillText('YNA STORE', 0, h*0.72);
     ctx.restore();
   }
 
-  /* ---- scary post-processing overlay for mask V2 ---- */
+  /* ---- post-processing overlay for hacker mode + shoot flash ---- */
   function drawScaryOverlay(cw,ch){
     const s = scaryFilterStrength;
     if(s <= 0.01 && shootFlash <= 0.01) return;
 
     if(shootFlash > 0.01){
       ctx.save();
-      ctx.globalAlpha = shootFlash*0.8;
-      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = shootFlash*0.75;
+      ctx.fillStyle = '#eaf7ff';
       ctx.fillRect(0,0,cw,ch);
       ctx.restore();
     }
 
     if(s > 0.01){
-      // red vignette
       ctx.save();
       const g = ctx.createRadialGradient(cw/2,ch/2, ch*0.25, cw/2,ch/2, ch*0.75);
       g.addColorStop(0,'rgba(0,0,0,0)');
-      g.addColorStop(1,`rgba(120,0,0,${0.55*s})`);
+      g.addColorStop(1,`rgba(0,40,70,${0.5*s})`);
       ctx.fillStyle = g;
       ctx.fillRect(0,0,cw,ch);
 
-      // occasional flicker
-      const flicker = (Math.sin(tGlobal*0.05) > 0.85) ? 0.12 : 0;
-      if(flicker>0){
-        ctx.globalAlpha = flicker*s;
-        ctx.fillStyle = '#ff2222';
-        ctx.fillRect(0,0,cw,ch);
-      }
-
-      // film grain (small tiled noise, cheap redraw every few frames)
       if((frameCount % 3)===0){
         const idata = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
         for(let i=0;i<idata.data.length;i+=4){
           const v = Math.random()*255;
-          idata.data[i]=v; idata.data[i+1]=v; idata.data[i+2]=v; idata.data[i+3]=28;
+          idata.data[i]=v; idata.data[i+1]=v; idata.data[i+2]=v; idata.data[i+3]=22;
         }
         noiseCtx.putImageData(idata,0,0);
       }
-      ctx.globalAlpha = 0.16*s;
+      ctx.globalAlpha = 0.12*s;
       ctx.drawImage(noiseCanvas, 0,0, cw,ch);
       ctx.restore();
     }
   }
 
-  /* ---- on-canvas gesture progress HUD ---- */
+  /* ---- on-canvas gesture progress HUD (rings only, no text) ---- */
   function drawGestureHUD(ts){
     if(pinchActive && pinchHoldStart!==null && lastPinchCanvasPoint){
-      const t = clamp((ts-pinchHoldStart)/3000,0,1);
-      drawProgressRing(lastPinchCanvasPoint.x, lastPinchCanvasPoint.y, t, '#39ff8f', t>=1 ? 'Lepaskan!' : 'Menahan cubitan');
+      const t = clamp((ts-pinchHoldStart)/1800,0,1);
+      drawProgressRing(lastPinchCanvasPoint.x, lastPinchCanvasPoint.y, t, '#39ff8f');
     }
-    if(gunActive && gunHoldStart!==null){
-      const t = clamp((ts-gunHoldStart)/2000,0,1);
-      const pt = lastPinchCanvasPoint || {x:window.innerWidth/2,y:window.innerHeight*0.3};
-      drawProgressRing(pt.x, pt.y-70, t, '#ff5b3d', t>=1 ? 'DOR!' : 'Membidik…');
+    if(gunActive && gunHoldStart!==null && lastGunCanvasPoint){
+      const t = clamp((ts-gunHoldStart)/1400,0,1);
+      drawProgressRing(lastGunCanvasPoint.x, lastGunCanvasPoint.y, t, '#3df1ff');
     }
   }
-  function drawProgressRing(x,y,t,color,label){
+  function drawProgressRing(x,y,t,color){
     ctx.save();
     ctx.beginPath();
-    ctx.arc(x,y,26,0,Math.PI*2);
+    ctx.arc(x,y,24,0,Math.PI*2);
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.lineWidth = 4;
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(x,y,26, -Math.PI/2, -Math.PI/2 + t*Math.PI*2);
+    ctx.arc(x,y,24, -Math.PI/2, -Math.PI/2 + t*Math.PI*2);
     ctx.strokeStyle = color;
     ctx.shadowBlur = 10; ctx.shadowColor = color;
     ctx.lineWidth = 4;
     ctx.stroke();
     ctx.restore();
-
-    ctx.save();
-    ctx.font = '600 11px system-ui, sans-serif';
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.shadowBlur = 4; ctx.shadowColor = '#000';
-    ctx.fillText(label, x, y+42);
-    ctx.restore();
   }
-
 
   function renderLoop(ts){
     if(!running) return;
     tGlobal = ts;
-    updateSmoothState();
+    updateGlitch();
 
     const cw = window.innerWidth, ch = window.innerHeight;
     const vw = offscreen.width, vh = offscreen.height;
 
     if(videoEl.readyState >= 2 && vw>0 && vh>0){
+      ctx.save();
+      if(shakeFrames > 0){
+        ctx.translate((Math.random()-0.5)*shakeFrames*1.6, (Math.random()-0.5)*shakeFrames*1.6);
+      }
+
       drawBackgroundVideo(vw,vh);
 
       const scale = Math.max(cw/vw, ch/vh);
@@ -1168,21 +1188,12 @@
 
       updateGestures(ts, cw, ch);
 
-      const bothActive = smooth.left.active && smooth.right.active &&
-                          smooth.left.top && smooth.left.bottom &&
-                          smooth.right.top && smooth.right.bottom;
-
-      if(bothActive){
-        drawPortal(cw,ch);
-        hintEl.style.opacity = '0';
-      } else {
-        hintEl.style.opacity = '1';
-      }
-
+      drawFingerShapes(cw,ch);
       drawMask(cw,ch);
 
       updateParticles();
       drawParticles();
+      drawShockRing(cw,ch);
 
       drawScaryOverlay(cw,ch);
 
@@ -1190,6 +1201,8 @@
       if(showDots) drawHandDots(cw,ch);
 
       drawGestureHUD(ts);
+
+      ctx.restore();
     }
 
     // FPS
@@ -1214,7 +1227,7 @@
     currentTheme = sw.dataset.theme;
     document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
     sw.classList.add('sel');
-    showToast('Tema: ' + sw.title);
+    showToast('Tema diubah: ' + sw.title);
   });
   document.addEventListener('click', (e)=>{
     if(!themeMenu.contains(e.target) && e.target!==btnTheme){
@@ -1225,19 +1238,19 @@
   btnDots.addEventListener('click', ()=>{
     showDots = !showDots;
     btnDots.classList.toggle('active', showDots);
-    showToast(showDots ? 'Titik tangan: ON' : 'Titik tangan: OFF');
+    showToast(showDots ? 'Titik tangan aktif' : 'Titik tangan nonaktif');
   });
 
   btnMirror.addEventListener('click', ()=>{
     mirrored = !mirrored;
     btnMirror.classList.toggle('active', mirrored);
-    showToast(mirrored ? 'Mode cermin: ON' : 'Mode cermin: OFF');
+    showToast(mirrored ? 'Mode cermin aktif' : 'Mode cermin nonaktif');
   });
 
   btnShot.addEventListener('click', ()=>{
     try{
       const link = document.createElement('a');
-      link.download = 'rainbow-hand-portal-' + Date.now() + '.png';
+      link.download = 'yna-tracking-' + Date.now() + '.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
       snapFlash.style.transition = 'none';
@@ -1246,7 +1259,7 @@
         snapFlash.style.transition = 'opacity .4s ease';
         snapFlash.style.opacity = '0';
       });
-      showToast('Gambar tersimpan ✔');
+      showToast('Gambar tersimpan');
     }catch(err){
       showToast('Gagal menyimpan gambar');
     }
@@ -1254,7 +1267,7 @@
 
   btnCam.addEventListener('click', ()=>{
     facing = (facing === 'user') ? 'environment' : 'user';
-    showToast('Mengganti kamera…');
+    showToast('Mengganti kamera');
     startCamera();
   });
 
@@ -1267,8 +1280,6 @@
       btnFull.classList.remove('active');
     }
   });
-
-  btnMirror.classList.add('active'); // mirrored default on
 
   /* ================= Boot ================= */
   resizeCanvas();
