@@ -44,8 +44,8 @@
   .stage.jump-shake {
     animation: jumpShake 0.7s cubic-bezier(.36,.07,.19,.97) both;
   }
-  /* PENTING: video, videoCanvas, dan fxCanvas HARUS pakai transform mirror
-     yang SAMA PERSIS supaya koordinat tangan align dengan gambar kamera. */
+  /* video, videoCanvas, dan fxCanvas HARUS pakai transform mirror yang SAMA
+     PERSIS supaya koordinat tangan align dengan gambar kamera. */
   #video, #videoCanvas, #fxCanvas {
     position: absolute;
     top: 0; left: 0;
@@ -186,7 +186,7 @@
 <body>
 
 <h1>✨ Hand Gesture FX Test</h1>
-<p class="sub">Rentangkan dua tangan (jarak sama ke kamera) buat ribbon overlay, bikin hati pakai 2 tangan atau pinch 1 tangan buat love, kepal lalu buka tangan buat efek kejut blur.</p>
+<p class="sub">Rentangkan dua tangan buat ribbon overlay. Genggam salah satu tangan buat sembunyikan efeknya. Bikin hati pakai 2 tangan / pinch buat love. Kepal lalu buka tangan buat efek kejut.</p>
 
 <div class="stage" id="stage">
   <div id="status"><span id="dot"></span><span id="statusText">Belum aktif</span></div>
@@ -202,7 +202,7 @@
 <div id="err"></div>
 
 <div class="legend">
-  <div class="item">🎀 <b>Ribbon overlay</b><br>Rentangkan kedua tangan sejajar (jarak ke kamera mirip), telapak terbuka.</div>
+  <div class="item">🎀 <b>Ribbon overlay</b><br>Rentangkan kedua tangan, telapak terbuka. Genggam salah satu tangan buat sembunyiin.</div>
   <div class="item">💕 <b>Love / heart burst</b><br>Bikin hati pakai 2 tangan (jempol+telunjuk saling nempel), atau pinch 1 tangan.</div>
   <div class="item">😱 <b>Jump effect</b><br>Kepalkan tangan lalu buka semua jari dengan cepat.</div>
 </div>
@@ -233,6 +233,10 @@ debugToggle.addEventListener('click', () => {
   debugToggle.textContent = 'Debug: ' + (debugMode ? 'ON' : 'OFF');
 });
 
+// ---------- warna ribbon TETAP (statis, bukan animasi pelangi) ----------
+const RIBBON_COLOR_A = '167, 90, 255';  // ungu neon (r,g,b)
+const RIBBON_COLOR_B = '46, 214, 255';  // cyan neon (r,g,b)
+
 // ---------- particle systems ----------
 let hearts = [];
 let confetti = [];
@@ -248,7 +252,7 @@ function spawnHearts(x, y, count) {
       life: 0,
       maxLife: 1.1 + Math.random() * 0.6,
       size: 14 + Math.random() * 18,
-      hue: 330 + Math.random() * 30,
+      hue: 340,
       rot: (Math.random() - 0.5) * 0.6,
       vrot: (Math.random() - 0.5) * 1.2
     });
@@ -327,93 +331,6 @@ function updateAndDrawConfetti(dt) {
   }
 }
 
-// ---------- landmark smoothing ----------
-let smoothed = [null, null];
-const SMOOTH_ALPHA = 0.45;
-
-function smoothLandmarks(slot, raw) {
-  if (!smoothed[slot]) {
-    smoothed[slot] = raw.map(p => ({ x: p.x, y: p.y, z: p.z || 0 }));
-    return smoothed[slot];
-  }
-  const s = smoothed[slot];
-  for (let i = 0; i < raw.length; i++) {
-    s[i].x += (raw[i].x - s[i].x) * SMOOTH_ALPHA;
-    s[i].y += (raw[i].y - s[i].y) * SMOOTH_ALPHA;
-    s[i].z += ((raw[i].z || 0) - s[i].z) * SMOOTH_ALPHA;
-  }
-  return s;
-}
-
-// ---------- ribbon overlay ----------
-let ribbonHue = 0;
-
-function handSize(lm) {
-  // perkiraan "ukuran" tangan di layar (pergelangan -> pangkal jari tengah)
-  const dx = lm[9].x - lm[0].x, dy = lm[9].y - lm[0].y;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-function canDrawRibbon(handA, handB) {
-  // 1) jarak antar pergelangan tangan harus cukup jauh (bukan 1 tangan kedetect dobel)
-  const wristDist = Math.hypot(handA[0].x - handB[0].x, handA[0].y - handB[0].y);
-  if (wristDist < 0.18) return false;
-
-  // 2) ukuran kedua tangan di layar tidak boleh beda jauh (hindari distorsi
-  //    akibat 1 tangan deket kamera & 1 tangan jauh/nunjuk ke arah lain)
-  const sA = handSize(handA), sB = handSize(handB);
-  const ratio = Math.max(sA, sB) / Math.max(Math.min(sA, sB), 0.0001);
-  if (ratio > 1.9) return false;
-
-  return true;
-}
-
-function drawRibbon(handA, handB, w, h) {
-  const p = (lm) => ({ x: lm.x * w, y: lm.y * h });
-  const A1 = p(handA[8]),  A2 = p(handA[20]);
-  const B1 = p(handB[8]),  B2 = p(handB[20]);
-
-  ribbonHue = (ribbonHue + 0.5) % 360;
-
-  // gradient lebih smooth: 4 stop warna berjarak sedang, bukan 7 stop rapat
-  const grad = fctx.createLinearGradient(A1.x, A1.y, B1.x, B1.y);
-  const stops = [0, 0.33, 0.66, 1];
-  stops.forEach((s, i) => {
-    const hue = (ribbonHue + i * 70) % 360;
-    grad.addColorStop(s, `hsla(${hue}, 85%, 62%, 0.85)`);
-  });
-
-  fctx.save();
-  fctx.beginPath();
-  fctx.moveTo(A1.x, A1.y);
-  fctx.lineTo(B1.x, B1.y);
-  fctx.lineTo(B2.x, B2.y);
-  fctx.lineTo(A2.x, A2.y);
-  fctx.closePath();
-  fctx.fillStyle = grad;
-  fctx.shadowColor = `hsla(${ribbonHue}, 100%, 60%, 0.7)`;
-  fctx.shadowBlur = 20;
-  fctx.globalAlpha = 0.88;
-  fctx.fill();
-
-  fctx.lineWidth = 3;
-  fctx.strokeStyle = `hsla(${ribbonHue}, 100%, 80%, 0.95)`;
-  fctx.stroke();
-  fctx.restore();
-
-  if (debugMode) {
-    fctx.save();
-    fctx.globalAlpha = 1;
-    fctx.fillStyle = '#fff';
-    [A1, A2, B1, B2].forEach(pt => {
-      fctx.beginPath();
-      fctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-      fctx.fill();
-    });
-    fctx.restore();
-  }
-}
-
 // ---------- gesture helpers ----------
 function dist(a, b) {
   const dx = a.x - b.x, dy = a.y - b.y, dz = (a.z || 0) - (b.z || 0);
@@ -435,6 +352,71 @@ function countExtendedFingers(lm) {
   }
   if (dist(lm[4], wrist) > dist(lm[3], wrist) * 1.1) count++;
   return count;
+}
+
+function handSize(lm) {
+  const dx = lm[9].x - lm[0].x, dy = lm[9].y - lm[0].y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// ---------- ribbon overlay (tracking langsung, tanpa smoothing/lag) ----------
+function canDrawRibbon(handA, handB) {
+  // kalau salah satu tangan ngepal -> sembunyikan (dipakai user buat "matiin" efek)
+  if (countExtendedFingers(handA) <= 1) return false;
+  if (countExtendedFingers(handB) <= 1) return false;
+
+  // jarak antar pergelangan tangan harus cukup jauh (bukan 1 tangan kedetect dobel)
+  const wristDist = Math.hypot(handA[0].x - handB[0].x, handA[0].y - handB[0].y);
+  if (wristDist < 0.18) return false;
+
+  // ukuran kedua tangan di layar tidak boleh beda jauh (hindari distorsi
+  // akibat 1 tangan deket kamera & 1 tangan jauh/beda arah)
+  const sA = handSize(handA), sB = handSize(handB);
+  const ratio = Math.max(sA, sB) / Math.max(Math.min(sA, sB), 0.0001);
+  if (ratio > 1.9) return false;
+
+  return true;
+}
+
+function drawRibbon(handA, handB, w, h) {
+  // pakai posisi ujung jari ASLI tiap frame (tanpa smoothing) biar akurat & nempel
+  const p = (lm) => ({ x: lm.x * w, y: lm.y * h });
+  const A1 = p(handA[8]),  A2 = p(handA[20]);
+  const B1 = p(handB[8]),  B2 = p(handB[20]);
+
+  const grad = fctx.createLinearGradient(A1.x, A1.y, B1.x, B1.y);
+  grad.addColorStop(0, `rgba(${RIBBON_COLOR_A}, 0.85)`);
+  grad.addColorStop(1, `rgba(${RIBBON_COLOR_B}, 0.85)`);
+
+  fctx.save();
+  fctx.beginPath();
+  fctx.moveTo(A1.x, A1.y);
+  fctx.lineTo(B1.x, B1.y);
+  fctx.lineTo(B2.x, B2.y);
+  fctx.lineTo(A2.x, A2.y);
+  fctx.closePath();
+  fctx.fillStyle = grad;
+  fctx.shadowColor = `rgba(${RIBBON_COLOR_A}, 0.6)`;
+  fctx.shadowBlur = 18;
+  fctx.globalAlpha = 0.88;
+  fctx.fill();
+
+  fctx.lineWidth = 3;
+  fctx.strokeStyle = `rgba(255,255,255,0.85)`;
+  fctx.stroke();
+  fctx.restore();
+
+  if (debugMode) {
+    fctx.save();
+    fctx.globalAlpha = 1;
+    fctx.fillStyle = '#fff';
+    [A1, A2, B1, B2].forEach(pt => {
+      fctx.beginPath();
+      fctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+      fctx.fill();
+    });
+    fctx.restore();
+  }
 }
 
 let prevFistOpenState = 'unknown';
@@ -503,23 +485,15 @@ function onResults(results) {
   const scores = (results.multiHandedness || []).map(hd => hd.score || 0);
   rawList = rawList.filter((_, i) => (scores[i] === undefined || scores[i] > 0.75));
   rawList = rawList.slice().sort((a, b) => a[0].x - b[0].x);
+  if (rawList.length > 2) rawList = rawList.slice(0, 2);
 
-  const activeSlots = [];
-  rawList.forEach((raw, i) => {
-    if (i > 1) return;
-    activeSlots.push(smoothLandmarks(i, raw));
-  });
-  if (rawList.length < 2) smoothed[1] = null;
-  if (rawList.length < 1) smoothed[0] = null;
-
-  if (activeSlots.length === 2 && canDrawRibbon(activeSlots[0], activeSlots[1])) {
-    drawRibbon(activeSlots[0], activeSlots[1], w, h);
+  if (rawList.length === 2 && canDrawRibbon(rawList[0], rawList[1])) {
+    drawRibbon(rawList[0], rawList[1], w, h);
   }
 
-  // --- deteksi love pakai 2 tangan (bentuk hati: ujung jempol & telunjuk
-  //     kedua tangan saling berdekatan) ---
-  if (activeSlots.length === 2) {
-    const [hA, hB] = activeSlots;
+  // --- love pakai 2 tangan (ujung jempol & telunjuk kedua tangan berdekatan) ---
+  if (rawList.length === 2) {
+    const [hA, hB] = rawList;
     const thumbGap = dist(hA[4], hB[4]);
     const indexGap = dist(hA[8], hB[8]);
     const refScale = (handSize(hA) + handSize(hB)) / 2;
@@ -537,7 +511,7 @@ function onResults(results) {
     prevTwoHandHeart = false;
   }
 
-  activeSlots.forEach((lm, idx) => {
+  rawList.forEach((lm, idx) => {
     const extended = countExtendedFingers(lm);
     const scale = dist(lm[0], lm[9]) || 0.1;
     const pinchDist = dist(lm[4], lm[8]);
