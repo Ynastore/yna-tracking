@@ -418,9 +418,10 @@
 
     if(lastResults && lastResults.multiHandLandmarks && lastResults.multiHandLandmarks.length){
       const hands = lastResults.multiHandLandmarks.map(lm=>{
-        // key reference points: index MCP (5) as "top", pinky MCP (17) as "bottom"
-        const rawTop    = lm[5];
-        const rawBottom = lm[17];
+        // key reference points: INDEX FINGERTIP (8) as "top", PINKY FINGERTIP (20) as "bottom"
+        // these are actual fingertips of the two open/extended fingers, not palm knuckles
+        const rawTop    = lm[8];
+        const rawBottom = lm[20];
         let cx = 0;
         for(const p of lm) cx += p.x;
         cx /= lm.length;
