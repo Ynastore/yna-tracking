@@ -44,7 +44,9 @@
   .stage.jump-shake {
     animation: jumpShake 0.7s cubic-bezier(.36,.07,.19,.97) both;
   }
-  video, canvas.videoCanvas {
+  /* PENTING: video, videoCanvas, dan fxCanvas HARUS pakai transform mirror
+     yang SAMA PERSIS supaya koordinat tangan align dengan gambar kamera. */
+  #video, #videoCanvas, #fxCanvas {
     position: absolute;
     top: 0; left: 0;
     width: 100%;
@@ -52,15 +54,8 @@
     object-fit: cover;
     transform: scaleX(-1);
   }
-  video { visibility: hidden; }
-  #fxCanvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    transform: scaleX(-1);
-  }
+  #video { visibility: hidden; }
+  #fxCanvas { pointer-events: none; }
   #videoCanvas {
     filter: blur(0px) brightness(1) saturate(1);
     transition: filter 0.05s linear;
@@ -134,6 +129,17 @@
     transition: opacity 0.25s ease;
   }
   #gestureLabel.show { opacity: 1; }
+  #debugToggle {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,0.55);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    z-index: 7;
+    cursor: pointer;
+    user-select: none;
+  }
   .legend {
     max-width: 760px;
     width: 100%;
@@ -180,10 +186,11 @@
 <body>
 
 <h1>✨ Hand Gesture FX Test</h1>
-<p class="sub">Rentangkan dua tangan buat ribbon overlay, pinch jempol+telunjuk buat love, kepal lalu buka tangan buat efek kejut blur.</p>
+<p class="sub">Rentangkan dua tangan (jarak sama ke kamera) buat ribbon overlay, bikin hati pakai 2 tangan atau pinch 1 tangan buat love, kepal lalu buka tangan buat efek kejut blur.</p>
 
 <div class="stage" id="stage">
   <div id="status"><span id="dot"></span><span id="statusText">Belum aktif</span></div>
+  <div id="debugToggle">Debug: OFF</div>
   <video id="video" playsinline autoplay muted></video>
   <canvas id="videoCanvas"></canvas>
   <canvas id="fxCanvas"></canvas>
@@ -195,8 +202,8 @@
 <div id="err"></div>
 
 <div class="legend">
-  <div class="item">🎀 <b>Ribbon overlay</b><br>Rentangkan kedua tangan (telapak terbuka) di depan kamera, jarak sedang.</div>
-  <div class="item">💕 <b>Love / heart burst</b><br>Pertemukan ujung jempol &amp; telunjuk (pinch) di satu tangan.</div>
+  <div class="item">🎀 <b>Ribbon overlay</b><br>Rentangkan kedua tangan sejajar (jarak ke kamera mirip), telapak terbuka.</div>
+  <div class="item">💕 <b>Love / heart burst</b><br>Bikin hati pakai 2 tangan (jempol+telunjuk saling nempel), atau pinch 1 tangan.</div>
   <div class="item">😱 <b>Jump effect</b><br>Kepalkan tangan lalu buka semua jari dengan cepat.</div>
 </div>
 
@@ -216,9 +223,15 @@ const statusText = document.getElementById('statusText');
 const dot = document.getElementById('dot');
 const errBox = document.getElementById('err');
 const gestureLabel = document.getElementById('gestureLabel');
+const debugToggle = document.getElementById('debugToggle');
 
 let camera = null;
 let lastFrameTime = performance.now();
+let debugMode = false;
+debugToggle.addEventListener('click', () => {
+  debugMode = !debugMode;
+  debugToggle.textContent = 'Debug: ' + (debugMode ? 'ON' : 'OFF');
+});
 
 // ---------- particle systems ----------
 let hearts = [];
@@ -285,7 +298,7 @@ function updateAndDrawHearts(dt) {
     h.life += dt;
     h.x += h.vx * dt;
     h.y += h.vy * dt;
-    h.vy += -20 * dt; // sedikit percepatan naik lalu melambat
+    h.vy += -20 * dt;
     h.vx *= 0.98;
     h.rot += h.vrot * dt;
     const t = h.life / h.maxLife;
@@ -314,24 +327,61 @@ function updateAndDrawConfetti(dt) {
   }
 }
 
+// ---------- landmark smoothing ----------
+let smoothed = [null, null];
+const SMOOTH_ALPHA = 0.45;
+
+function smoothLandmarks(slot, raw) {
+  if (!smoothed[slot]) {
+    smoothed[slot] = raw.map(p => ({ x: p.x, y: p.y, z: p.z || 0 }));
+    return smoothed[slot];
+  }
+  const s = smoothed[slot];
+  for (let i = 0; i < raw.length; i++) {
+    s[i].x += (raw[i].x - s[i].x) * SMOOTH_ALPHA;
+    s[i].y += (raw[i].y - s[i].y) * SMOOTH_ALPHA;
+    s[i].z += ((raw[i].z || 0) - s[i].z) * SMOOTH_ALPHA;
+  }
+  return s;
+}
+
 // ---------- ribbon overlay ----------
 let ribbonHue = 0;
 
+function handSize(lm) {
+  // perkiraan "ukuran" tangan di layar (pergelangan -> pangkal jari tengah)
+  const dx = lm[9].x - lm[0].x, dy = lm[9].y - lm[0].y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function canDrawRibbon(handA, handB) {
+  // 1) jarak antar pergelangan tangan harus cukup jauh (bukan 1 tangan kedetect dobel)
+  const wristDist = Math.hypot(handA[0].x - handB[0].x, handA[0].y - handB[0].y);
+  if (wristDist < 0.18) return false;
+
+  // 2) ukuran kedua tangan di layar tidak boleh beda jauh (hindari distorsi
+  //    akibat 1 tangan deket kamera & 1 tangan jauh/nunjuk ke arah lain)
+  const sA = handSize(handA), sB = handSize(handB);
+  const ratio = Math.max(sA, sB) / Math.max(Math.min(sA, sB), 0.0001);
+  if (ratio > 1.9) return false;
+
+  return true;
+}
+
 function drawRibbon(handA, handB, w, h) {
-  // titik atas: index MCP (5), titik bawah: pinky MCP (17)
-  const aTop = handA[5], aBot = handA[17];
-  const bTop = handB[5], bBot = handB[17];
-
   const p = (lm) => ({ x: lm.x * w, y: lm.y * h });
-  const A1 = p(aTop), A2 = p(aBot), B1 = p(bTop), B2 = p(bBot);
+  const A1 = p(handA[8]),  A2 = p(handA[20]);
+  const B1 = p(handB[8]),  B2 = p(handB[20]);
 
-  ribbonHue = (ribbonHue + 0.6) % 360;
+  ribbonHue = (ribbonHue + 0.5) % 360;
 
+  // gradient lebih smooth: 4 stop warna berjarak sedang, bukan 7 stop rapat
   const grad = fctx.createLinearGradient(A1.x, A1.y, B1.x, B1.y);
-  for (let i = 0; i <= 6; i++) {
-    const hue = (ribbonHue + i * 45) % 360;
-    grad.addColorStop(i / 6, `hsla(${hue}, 90%, 60%, 0.85)`);
-  }
+  const stops = [0, 0.33, 0.66, 1];
+  stops.forEach((s, i) => {
+    const hue = (ribbonHue + i * 70) % 360;
+    grad.addColorStop(s, `hsla(${hue}, 85%, 62%, 0.85)`);
+  });
 
   fctx.save();
   fctx.beginPath();
@@ -341,16 +391,27 @@ function drawRibbon(handA, handB, w, h) {
   fctx.lineTo(A2.x, A2.y);
   fctx.closePath();
   fctx.fillStyle = grad;
-  fctx.shadowColor = `hsla(${ribbonHue}, 100%, 60%, 0.8)`;
-  fctx.shadowBlur = 25;
-  fctx.globalAlpha = 0.9;
+  fctx.shadowColor = `hsla(${ribbonHue}, 100%, 60%, 0.7)`;
+  fctx.shadowBlur = 20;
+  fctx.globalAlpha = 0.88;
   fctx.fill();
 
-  // garis tepi glow
   fctx.lineWidth = 3;
-  fctx.strokeStyle = `hsla(${ribbonHue}, 100%, 75%, 0.9)`;
+  fctx.strokeStyle = `hsla(${ribbonHue}, 100%, 80%, 0.95)`;
   fctx.stroke();
   fctx.restore();
+
+  if (debugMode) {
+    fctx.save();
+    fctx.globalAlpha = 1;
+    fctx.fillStyle = '#fff';
+    [A1, A2, B1, B2].forEach(pt => {
+      fctx.beginPath();
+      fctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+      fctx.fill();
+    });
+    fctx.restore();
+  }
 }
 
 // ---------- gesture helpers ----------
@@ -360,10 +421,10 @@ function dist(a, b) {
 }
 
 const FINGERS = [
-  { tip: 8, pip: 6 },   // index
-  { tip: 12, pip: 10 }, // middle
-  { tip: 16, pip: 14 }, // ring
-  { tip: 20, pip: 18 }  // pinky
+  { tip: 8, pip: 6 },
+  { tip: 12, pip: 10 },
+  { tip: 16, pip: 14 },
+  { tip: 20, pip: 18 }
 ];
 
 function countExtendedFingers(lm) {
@@ -372,25 +433,26 @@ function countExtendedFingers(lm) {
   for (const f of FINGERS) {
     if (dist(lm[f.tip], wrist) > dist(lm[f.pip], wrist) * 1.15) count++;
   }
-  // thumb (pakai IP joint 3 vs tip 4)
   if (dist(lm[4], wrist) > dist(lm[3], wrist) * 1.1) count++;
   return count;
 }
 
-let prevFistOpenState = 'unknown'; // 'fist' | 'open' | 'mid'
+let prevFistOpenState = 'unknown';
 let lastJumpTime = 0;
-let jumpCooldown = 1800; // ms
+const JUMP_COOLDOWN = 1800;
 
 let prevPinchState = [false, false];
 let lastPinchSpawn = [0, 0];
+let prevTwoHandHeart = false;
+let lastTwoHandHeartSpawn = 0;
 
 function triggerJumpscare() {
   const now = performance.now();
-  if (now - lastJumpTime < jumpCooldown) return;
+  if (now - lastJumpTime < JUMP_COOLDOWN) return;
   lastJumpTime = now;
 
   stage.classList.remove('jump-active', 'jump-shake');
-  void stage.offsetWidth; // restart animasi
+  void stage.offsetWidth;
   stage.classList.add('jump-active', 'jump-shake');
   setTimeout(() => stage.classList.remove('jump-active', 'jump-shake'), 950);
 
@@ -414,8 +476,8 @@ const hands = new Hands({
 hands.setOptions({
   maxNumHands: 2,
   modelComplexity: 1,
-  minDetectionConfidence: 0.65,
-  minTrackingConfidence: 0.65
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
 });
 
 hands.onResults(onResults);
@@ -437,15 +499,45 @@ function onResults(results) {
 
   fctx.clearRect(0, 0, w, h);
 
-  const list = results.multiHandLandmarks || [];
+  let rawList = results.multiHandLandmarks || [];
+  const scores = (results.multiHandedness || []).map(hd => hd.score || 0);
+  rawList = rawList.filter((_, i) => (scores[i] === undefined || scores[i] > 0.75));
+  rawList = rawList.slice().sort((a, b) => a[0].x - b[0].x);
 
-  // --- ribbon jika 2 tangan terdeteksi ---
-  if (list.length === 2) {
-    drawRibbon(list[0], list[1], w, h);
+  const activeSlots = [];
+  rawList.forEach((raw, i) => {
+    if (i > 1) return;
+    activeSlots.push(smoothLandmarks(i, raw));
+  });
+  if (rawList.length < 2) smoothed[1] = null;
+  if (rawList.length < 1) smoothed[0] = null;
+
+  if (activeSlots.length === 2 && canDrawRibbon(activeSlots[0], activeSlots[1])) {
+    drawRibbon(activeSlots[0], activeSlots[1], w, h);
   }
 
-  // --- per-hand gesture: pinch (love) & fist/open ---
-  list.forEach((lm, idx) => {
+  // --- deteksi love pakai 2 tangan (bentuk hati: ujung jempol & telunjuk
+  //     kedua tangan saling berdekatan) ---
+  if (activeSlots.length === 2) {
+    const [hA, hB] = activeSlots;
+    const thumbGap = dist(hA[4], hB[4]);
+    const indexGap = dist(hA[8], hB[8]);
+    const refScale = (handSize(hA) + handSize(hB)) / 2;
+    const isTwoHandHeart = thumbGap < refScale * 0.6 && indexGap < refScale * 0.6;
+
+    if (isTwoHandHeart && !prevTwoHandHeart && now - lastTwoHandHeartSpawn > 500) {
+      const mx = ((hA[8].x + hB[8].x) / 2) * w;
+      const my = ((hA[8].y + hB[8].y) / 2) * h;
+      spawnHearts(mx, my, 18);
+      lastTwoHandHeartSpawn = now;
+      showGestureLabel('💕 Love!');
+    }
+    prevTwoHandHeart = isTwoHandHeart;
+  } else {
+    prevTwoHandHeart = false;
+  }
+
+  activeSlots.forEach((lm, idx) => {
     const extended = countExtendedFingers(lm);
     const scale = dist(lm[0], lm[9]) || 0.1;
     const pinchDist = dist(lm[4], lm[8]);
@@ -459,7 +551,6 @@ function onResults(results) {
     }
     prevPinchState[idx] = isPinch;
 
-    // fist -> open, hanya pakai tangan pertama biar stabil
     if (idx === 0) {
       let state = 'mid';
       if (extended <= 1) state = 'fist';
