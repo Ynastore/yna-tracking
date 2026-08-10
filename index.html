@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hand Tracking Test</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0d0f14;
+    color: #f2f2f2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 8px 0 4px;
+    letter-spacing: 0.3px;
+  }
+  p.sub {
+    color: #9aa0ab;
+    font-size: 13px;
+    margin: 0 0 16px;
+    text-align: center;
+  }
+  .stage {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    aspect-ratio: 4 / 3;
+    background: #000;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px #23262e, 0 20px 40px rgba(0,0,0,0.4);
+  }
+  video, canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* mirror biar natural kayak cermin */
+  }
+  video { visibility: hidden; }
+  #status {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(0,0,0,0.55);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ff4b4b;
+    transition: background 0.2s;
+  }
+  #dot.live { background: #2ee06b; }
+  .info-row {
+    max-width: 720px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .card {
+    background: #161922;
+    border: 1px solid #23262e;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    flex: 1;
+    min-width: 140px;
+  }
+  .card b {
+    display: block;
+    font-size: 18px;
+    margin-top: 2px;
+  }
+  button {
+    margin-top: 16px;
+    background: #2f6fed;
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:active { transform: scale(0.98); }
+  #err {
+    color: #ff6b6b;
+    font-size: 13px;
+    margin-top: 10px;
+    text-align: center;
+    max-width: 600px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>✋ Hand Tracking Test</h1>
+<p class="sub">Deteksi tangan langsung dari kamera browser — pakai MediaPipe Hands</p>
+
+<div class="stage">
+  <div id="status"><span id="dot"></span><span id="statusText">Belum aktif</span></div>
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="canvas"></canvas>
+</div>
+
+<button id="startBtn">Aktifkan Kamera</button>
+<div id="err"></div>
+
+<div class="info-row">
+  <div class="card">Tangan Terdeteksi<b id="handCount">0</b></div>
+  <div class="card">FPS<b id="fpsCount">0</b></div>
+  <div class="card">Sisi<b id="handedness">-</b></div>
+</div>
+
+<!-- MediaPipe Hands via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const startBtn = document.getElementById('startBtn');
+const statusText = document.getElementById('statusText');
+const dot = document.getElementById('dot');
+const handCountEl = document.getElementById('handCount');
+const fpsCountEl = document.getElementById('fpsCount');
+const handednessEl = document.getElementById('handedness');
+const errBox = document.getElementById('err');
+
+let camera = null;
+let lastTime = performance.now();
+let frameCount = 0;
+let fps = 0;
+
+function showError(msg) {
+  errBox.style.display = 'block';
+  errBox.textContent = msg;
+}
+
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+  maxNumHands: 2,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.6,
+  minTrackingConfidence: 0.6
+});
+
+hands.onResults(onResults);
+
+function onResults(results) {
+  // resize canvas biar match resolusi video asli
+  canvas.width = results.image.width;
+  canvas.height = results.image.height;
+
+  ctx.save();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+  const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+  handCountEl.textContent = numHands;
+
+  if (numHands > 0) {
+    let sides = [];
+    for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+      const landmarks = results.multiHandLandmarks[i];
+      const label = results.multiHandedness[i]?.label || '?';
+      sides.push(label);
+
+      drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {
+        color: '#2ee06b',
+        lineWidth: 4
+      });
+      drawLandmarks(ctx, landmarks, {
+        color: '#ff9f1c',
+        fillColor: '#ff9f1c',
+        radius: 4
+      });
+    }
+    handednessEl.textContent = sides.join(' / ');
+  } else {
+    handednessEl.textContent = '-';
+  }
+
+  ctx.restore();
+
+  // hitung FPS
+  frameCount++;
+  const now = performance.now();
+  if (now - lastTime >= 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    lastTime = now;
+    fpsCountEl.textContent = fps;
+  }
+}
+
+startBtn.addEventListener('click', async () => {
+  startBtn.disabled = true;
+  startBtn.textContent = 'Memuat...';
+  errBox.style.display = 'none';
+
+  try {
+    // minta izin kamera dulu secara eksplisit
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' },
+      audio: false
+    });
+    video.srcObject = stream;
+    await video.play();
+
+    camera = new Camera(video, {
+      onFrame: async () => {
+        await hands.send({ image: video });
+      },
+      width: 1280,
+      height: 960
+    });
+
+    camera.start();
+
+    statusText.textContent = 'Kamera aktif';
+    dot.classList.add('live');
+    startBtn.textContent = 'Sedang Berjalan';
+  } catch (e) {
+    console.error(e);
+    startBtn.disabled = false;
+    startBtn.textContent = 'Aktifkan Kamera';
+    if (e.name === 'NotAllowedError') {
+      showError('Izin kamera ditolak. Klik ikon kamera di address bar dan izinkan akses, lalu coba lagi.');
+    } else if (e.name === 'NotFoundError') {
+      showError('Tidak ada kamera yang terdeteksi di perangkat ini.');
+    } else {
+      showError('Gagal mengakses kamera: ' + e.message + '. Pastikan halaman diakses lewat HTTPS.');
+    }
+  }
+});
+</script>
+
+</body>
+</html>
