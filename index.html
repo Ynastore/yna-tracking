@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>YNA TRACKING — Hand Pattern &amp; Mask Effect</title>
-<meta name="description" content="YNA TRACKING — efek pola tangan dinamis dan transformasi topeng real-time berbasis hand &amp; face tracking.">
+<title>YNA TRACKING</title>
+<meta name="description" content="YNA TRACKING — efek portal interaktif berbasis hand tracking real-time.">
 <style>
   :root{
     --bg:#05060a;
@@ -41,9 +41,6 @@
     display:block;
   }
 
-  svg.icon{ width:20px; height:20px; display:block; }
-  svg.icon *{ vector-effect:non-scaling-stroke; }
-
   /* ---------- Top bar ---------- */
   #topbar{
     position:fixed; top:0; left:0; right:0;
@@ -65,8 +62,8 @@
   }
   @keyframes spin{to{transform:rotate(360deg);}}
   #brand h1{
-    font-size:14px; font-weight:700; margin:0;
-    letter-spacing:1.5px;
+    font-size:14px; font-weight:600; margin:0;
+    letter-spacing:0.5px;
     background:linear-gradient(90deg,var(--pink),var(--cyan),var(--blue));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
@@ -92,39 +89,18 @@
   @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.35;}}
   #fps{font-variant-numeric:tabular-nums; opacity:0.8;}
 
-  /* ---------- Hint (icon only, no text) ---------- */
+  /* ---------- Hint ---------- */
   #hint{
-    position:fixed; left:50%; top:20%;
+    position:fixed; left:50%; top:18%;
     transform:translateX(-50%);
+    text-align:center;
     z-index:15;
     pointer-events:none;
-    transition:opacity .45s ease;
+    transition:opacity .4s ease;
   }
-  #hint .ring{
-    width:64px; height:64px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    background:var(--panel);
-    border:1px solid var(--panel-border);
-    backdrop-filter:blur(10px);
-    animation:hintPulse 2.4s ease-in-out infinite;
-    box-shadow:0 0 22px rgba(61,241,255,0.25);
-  }
-  #hint svg{ width:28px; height:28px; color:var(--cyan); }
-  @keyframes hintPulse{
-    0%,100%{ transform:scale(1); box-shadow:0 0 22px rgba(61,241,255,0.25); }
-    50%{ transform:scale(1.08); box-shadow:0 0 32px rgba(61,241,255,0.45); }
-  }
-
-  /* ---------- Side watermark ---------- */
-  #sideWatermark{
-    position:fixed; right:10px; top:50%;
-    transform:translateY(-50%) rotate(90deg);
-    transform-origin:right center;
-    font-size:10px; letter-spacing:4px; font-weight:700;
-    color:rgba(255,255,255,0.28);
-    pointer-events:none; z-index:12;
-    white-space:nowrap;
-  }
+  #hint .hintIcon{ filter:drop-shadow(0 0 10px rgba(61,241,255,0.6)); animation:float 2.6s ease-in-out infinite, fade 2.4s ease-in-out infinite; }
+  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+  @keyframes fade{0%,100%{opacity:0.55;}50%{opacity:1;}}
 
   /* ---------- Bottom control dock ---------- */
   #dock{
@@ -144,6 +120,7 @@
     background:rgba(255,255,255,0.04);
     border:1px solid transparent;
     color:var(--text);
+    font-size:19px;
     cursor:pointer;
     user-select:none;
     transition:transform .15s ease, background .2s ease, border-color .2s ease;
@@ -158,9 +135,8 @@
   .btn.shutter{
     width:56px;height:56px;
     background:radial-gradient(circle at 35% 30%, #fff, #cfd9ff 40%, var(--purple) 100%);
-    color:#0a0a12;
+    color:#0a0a12; font-size:20px;
   }
-  .btn.shutter svg{ color:#0a0a12; }
   .sep{width:1px; height:26px; background:var(--panel-border); margin:0 2px;}
 
   /* Theme picker */
@@ -210,19 +186,31 @@
     position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:60;
   }
   #toast{
-    position:fixed; left:50%; bottom:92px; transform:translateX(-50%) translateY(20px);
-    display:flex; align-items:center; gap:8px;
+    position:fixed; left:50%; bottom:92px; transform:translateX(-50%) translateY(14px) scale(0.7);
+    width:46px; height:46px; border-radius:50%;
     background:rgba(20,22,32,0.92); border:1px solid var(--panel-border);
-    padding:9px 16px; border-radius:14px; font-size:12px; color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--cyan);
     opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
     z-index:30; backdrop-filter:blur(10px);
+    box-shadow:0 0 0 rgba(61,241,255,0);
   }
-  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
-  #toast .tdot{ width:7px; height:7px; border-radius:50%; background:var(--cyan); box-shadow:0 0 6px var(--cyan); flex:none; }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0) scale(1); box-shadow:0 0 20px rgba(61,241,255,0.35);}
+  #toast svg{width:22px;height:22px;}
+
+  #sideWatermark{
+    position:fixed; right:10px; top:50%; transform:translateY(-50%) rotate(90deg);
+    transform-origin:right center;
+    font-size:10px; letter-spacing:3px; font-weight:600;
+    color:rgba(234,242,255,0.28);
+    z-index:12; pointer-events:none;
+    white-space:nowrap;
+  }
 
   @media (max-width:480px){
     #brand h1{display:none;}
     .btn{width:42px;height:42px;}
+    .btn svg{width:18px;height:18px;}
   }
 </style>
 </head>
@@ -235,21 +223,15 @@
 
 <div id="topbar">
   <div id="brand"><span class="dot"></span><h1>YNA TRACKING</h1></div>
-  <div id="status"><span class="pulse"></span><span id="statusText">Menyiapkan</span><span id="fps"></span></div>
+  <div id="status"><span class="pulse"></span><span id="fps"></span></div>
 </div>
 
 <div id="hint">
-  <div class="ring">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M8 12V6a1.5 1.5 0 0 1 3 0v5"></path>
-      <path d="M11 11V4.5a1.5 1.5 0 0 1 3 0V11"></path>
-      <path d="M14 11.2V6a1.5 1.5 0 0 1 3 0v7"></path>
-      <path d="M17 12v-2a1.5 1.5 0 0 1 3 0v5c0 3.5-2 6-6 6h-1c-3 0-4.2-1-5.6-3l-2.6-4.3c-.5-.9-.2-1.9.7-2.3.8-.4 1.7-.1 2.2.6L9 14"></path>
-    </svg>
-  </div>
+  <svg class="hintIcon" viewBox="0 0 64 64" width="40" height="40" fill="none">
+    <path d="M18 40V22a4 4 0 0 1 8 0v10M26 32V18a4 4 0 0 1 8 0v10M34 32V20a4 4 0 0 1 8 0v10M42 34V26a4 4 0 0 1 8 0v10c0 8-6 16-14 16h-4c-6 0-10-3-13-8l-6-10a4 4 0 0 1 6-5l3 3" stroke="url(#hintGrad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <defs><linearGradient id="hintGrad" x1="0" y1="0" x2="64" y2="64"><stop offset="0" stop-color="#ff2ea6"/><stop offset="0.5" stop-color="#39ff8f"/><stop offset="1" stop-color="#3df1ff"/></linearGradient></defs>
+  </svg>
 </div>
-
-<div id="sideWatermark">YNA STORE</div>
 
 <div id="themeMenu">
   <div class="swatch sel" data-theme="rainbow" style="background:conic-gradient(#ff2ea6,#7b2ff7,#39ff8f,#3df1ff,#2b6dff,#ff2ea6)" title="Rainbow"></div>
@@ -260,28 +242,30 @@
 
 <div id="dock">
   <div class="btn" id="btnTheme" title="Warna">
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="8.2" cy="10" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="12" cy="7.6" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="15.8" cy="10" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="10.4" cy="14.6" r="1.15" fill="currentColor" stroke="none"></circle><path d="M15 14.8c1 0 1.7.7 1.7 1.6 0 1-.9 1.6-2.1 1.6H12c-1 0-1.9-.8-1.9-2.1 0-3 2.6-5.5 5.9-5.5 3.9 0 6 2.7 6 5.8 0 2.7-2 4.8-5 4.8"></path></svg>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="8.2" cy="10" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.8" cy="10" r="1.3" fill="currentColor" stroke="none"/><circle cx="9.5" cy="14.5" r="1.3" fill="currentColor" stroke="none"/><path d="M12 21c-1 0-1.3-1-.4-1.6.9-.6.9-2-.3-2.2-3.6-.6-6.3-3.5-6.3-7.2" stroke-linecap="round"/></svg>
   </div>
   <div class="btn" id="btnDots" title="Titik tangan">
-    <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="6" r="1.6"></circle><circle cx="12" cy="6" r="1.6"></circle><circle cx="18" cy="6" r="1.6"></circle><circle cx="6" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="18" cy="12" r="1.6"></circle><circle cx="6" cy="18" r="1.6"></circle><circle cx="12" cy="18" r="1.6"></circle><circle cx="18" cy="18" r="1.6"></circle></svg>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="7" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="16" cy="14" r="1.4" fill="currentColor" stroke="none"/><path d="M5 6l7-1 7 3M7 13l-2-7M16 14l3-7M12 5l-5 8m5-8l4 9"/></svg>
   </div>
-  <div class="btn active" id="btnMirror" title="Cermin">
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><path d="M6 7l-3 5 3 5"></path><path d="M18 7l3 5-3 5"></path></svg>
+  <div class="btn" id="btnMirror" title="Cermin">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3v16l-4-3z"/><path d="M20 7l-4-3v16l4-3z"/><path d="M12 3v18" stroke-dasharray="2 2"/></svg>
   </div>
   <div class="sep"></div>
   <div class="btn shutter" id="btnShot" title="Ambil gambar">
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"></path><circle cx="12" cy="13.5" r="3.4"></circle></svg>
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.4"/></svg>
   </div>
   <div class="sep"></div>
   <div class="btn" id="btnCam" title="Ganti kamera">
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h4l1.5-2h5L16 7h4v11H4z"></path><path d="M9 16a3.2 3.2 0 1 0 0-6.4"></path><path d="M15 9.6a3.2 3.2 0 0 1 0 6.4"></path></svg>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 13a8 8 0 0 0 14.9 4"/><path d="M5 3v4h4M19 21v-4h-4"/></svg>
   </div>
   <div class="btn" id="btnFull" title="Layar penuh">
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5h4"></path><path d="M20 9V5h-4"></path><path d="M4 15v4h4"></path><path d="M20 15v4h-4"></path></svg>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4"/></svg>
   </div>
 </div>
 
-<div id="toast"><span class="tdot"></span><span id="toastText"></span></div>
+<div id="sideWatermark">YNA STORE</div>
+
+<div id="toast"></div>
 <div id="snapFlash"></div>
 
 <div id="loading">
@@ -317,11 +301,10 @@
   const errorMsgEl  = document.getElementById('errorMsg');
   const retryBtn    = document.getElementById('retryBtn');
   const statusEl    = document.getElementById('status');
-  const statusText  = document.getElementById('statusText');
   const fpsEl       = document.getElementById('fps');
+  const sideWatermarkEl = document.getElementById('sideWatermark');
   const hintEl      = document.getElementById('hint');
   const toastEl     = document.getElementById('toast');
-  const toastTextEl = document.getElementById('toastText');
   const snapFlash   = document.getElementById('snapFlash');
 
   const btnTheme  = document.getElementById('btnTheme');
@@ -343,11 +326,25 @@
   let running    = false;
 
   const THEMES = {
-    rainbow: { hueBase:0,   border:'#3df1ff' },
-    aurora:  { hueBase:150, border:'#20e3ff' },
-    fire:    { hueBase:20,  border:'#ff8a2e' },
-    mono:    { hueBase:220, border:'#8f9bff' },
+    rainbow: { stops:[[0,'#ff2ea6'],[0.28,'#39ff8f'],[0.5,'#f4fbff'],[0.72,'#3df1ff'],[1,'#2b6dff']],
+               border:['#ff2ea6','#39ff8f','#3df1ff','#2b6dff'], hue:200, sat:1.6 },
+    aurora:  { stops:[[0,'#0dffb2'],[0.35,'#20e3ff'],[0.65,'#f4fbff'],[1,'#2b6dff']],
+               border:['#0dffb2','#20e3ff','#20e3ff','#2b6dff'], hue:150, sat:1.5 },
+    fire:    { stops:[[0,'#ffe83d'],[0.35,'#ff8a2e'],[0.65,'#fff3d6'],[1,'#ff2e5b']],
+               border:['#ffe83d','#ff8a2e','#ff8a2e','#ff2e5b'], hue:-40, sat:1.7 },
+    mono:    { stops:[[0,'#e8ecff'],[0.35,'#8f9bff'],[0.65,'#f4fbff'],[1,'#3d4bff']],
+               border:['#e8ecff','#8f9bff','#8f9bff','#3d4bff'], hue:220, sat:1.2 },
   };
+
+  // Generalized fingertip-slot smoothing: every currently-extended fingertip (across both
+  // hands) gets matched frame-to-frame by screen-x order into a stable "slot", smoothed,
+  // and kept alive for a few frames after it briefly drops out (avoids flicker).
+  const MAX_SLOTS     = 10; // max fingers across two hands
+  let pointSlots = []; // [{x,y,active,life}]
+  for(let i=0;i<MAX_SLOTS;i++) pointSlots.push({x:null,y:null,active:false,life:0});
+  const SMOOTH_FACTOR = 0.55;   // higher = smoother but more lag
+  const LIFE_DECAY    = 6;      // frames a point can "survive" without detection (avoids flicker)
+  let shapeGroups = []; // built each frame: [{points:[...], size, colorSeed}]
 
   let lastResults = null;      // hands
   let lastFaceResults = null;  // face mesh
@@ -359,31 +356,45 @@
   let pinchActive = false, pinchHoldStart = null;
   let gunActive = false, gunHoldStart = null, gunFiredThisHold = false;
   let lastPinchCanvasPoint = null;
-  let lastGunCanvasPoint = null;
-
-  let maskOn = true;            // mask visible or not
-  let maskType = 'clown';       // 'clown' | 'hacker' — which mask is currently assigned
+  let gunMuzzlePoint = null;
+  let maskState = 'off';        // 'off' | 'v1' | 'v2'
   let maskTransition = null;    // { type:'intro'|'outro'|'shoot', start, duration }
-  let scaryFilterStrength = 0;  // 0..1, eases in/out around hacker mask
-  let particles = [];           // shared particle system
+  let scaryFilterStrength = 0;  // 0..1, eases in/out around v2
+  let particles = [];           // shared particle system (matrix rain + shoot sparks)
   let shootFlash = 0;           // 0..1 flash intensity after gun shoot
-  let shockRing = null;         // { start, duration } expanding shockwave
-  let shakeFrames = 0;          // screen-shake countdown
-  let smoothFace = null;        // smoothed face bbox {cx,cy,angle,eyeDist}
+  let shakeMag = 0;             // current screen-shake magnitude (px), decays to 0
+  let shockwaves = [];          // {x,y,start,duration} expanding rings from a shoot
+  function triggerShake(mag){ shakeMag = mag; }
+  let smoothFace = null;        // smoothed face bbox {cx,cy,angle,w,h}
   const noiseCanvas = document.createElement('canvas');
   const noiseCtx = noiseCanvas.getContext('2d');
   noiseCanvas.width = 160; noiseCanvas.height = 90;
 
   /* ================= Helpers ================= */
   function lerp(a,b,t){ return a + (b-a)*t; }
+  function lerpPt(prev, next, t){
+    if(!prev) return {x:next.x, y:next.y};
+    return { x:lerp(prev.x,next.x,t), y:lerp(prev.y,next.y,t) };
+  }
   function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
   function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
   function easeOutCubic(t){ return 1 - Math.pow(1-t,3); }
-  function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+
+  // Decompose a total fingertip count into shape-group sizes:
+  // 2=line, 3=triangle, 4=square, 5=pentagon.
+  // Above 5, peel off squares of 4 first so the leftover always forms a clean
+  // shape (never a lone, un-drawable single point): 6->[4,2], 7->[4,3], 9->[4,5]...
+  function decomposeCount(n){
+    const groups = [];
+    let remaining = n;
+    while(remaining > 5){ groups.push(4); remaining -= 4; }
+    if(remaining >= 2) groups.push(remaining);
+    return groups;
+  }
 
   // finger tip/pip landmark pairs (thumb, index, middle, ring, pinky)
   const FINGER_DEFS = [
-    { name:'thumb',  tip:4,  pip:3  },
+    { name:'thumb',  tip:4,  pip:3  }, // thumb (uses IP joint)
     { name:'index',  tip:8,  pip:6  },
     { name:'middle', tip:12, pip:10 },
     { name:'ring',   tip:16, pip:14 },
@@ -398,28 +409,64 @@
       const tip = lm[f.tip], pip = lm[f.pip];
       const dTip = dist(tip, wrist);
       const dPip = dist(pip, wrist);
+      // a finger is "open" when its tip is meaningfully farther from the wrist
+      // than its pip joint -- curled/fisted fingers fail this test
       if(dTip > dPip * 1.08){ out.push({ finger:f.name, point:tip }); }
     }
     return out;
+  }
+
+  // among a set of points, find the pair that is farthest apart from each other
+  // (captures the natural span of whichever fingers happen to be open)
+  function farthestPair(points){
+    if(points.length === 0) return null;
+    if(points.length === 1) return [points[0], points[0]];
+    let maxD = -1, pair = [points[0], points[1]];
+    for(let i=0;i<points.length;i++){
+      for(let j=i+1;j<points.length;j++){
+        const d = dist(points[i], points[j]);
+        if(d > maxD){ maxD = d; pair = [points[i], points[j]]; }
+      }
+    }
+    return pair;
   }
 
   // pinch = thumb tip and index tip close together, relative to hand size (scale invariant)
   function pinchAmount(lm){
     const scale = dist(lm[0], lm[9]) || 0.001;
     const d = dist(lm[4], lm[8]);
-    return d/scale;
+    return d/scale; // smaller = tighter pinch
   }
   function isPinching(lm){ return pinchAmount(lm) < 0.42; }
 
-  // "finger gun" shape: thumb up + index extended, middle/ring/pinky curled into the palm
-  // (matches the classic hand-gun gesture — thumb acts as the hammer, index as the barrel)
+  // "gun" shape: thumb UP + index straight out, middle/ring/pinky curled into a fist
+  // (matches the classic finger-gun hand shape)
   function isGunShape(lm){
     const ext = getExtendedFingertips(lm).map(e=>e.finger);
-    const indexOut  = ext.includes('index');
-    const middleIn  = !ext.includes('middle');
-    const ringIn    = !ext.includes('ring');
-    const pinkyIn   = !ext.includes('pinky');
-    return indexOut && middleIn && ringIn && pinkyIn;
+    const coreShape = ext.includes('index') && ext.includes('thumb') &&
+                       !ext.includes('middle') && !ext.includes('ring') && !ext.includes('pinky');
+    if(!coreShape) return false;
+    // thumb should point roughly away from the index finger's direction (like a hammer cocked up),
+    // not just be loosely open -- this keeps an open palm from being mistaken for a gun.
+    const wrist = lm[0], indexMcp = lm[5], indexTip = lm[8], thumbTip = lm[4], thumbMcp = lm[2];
+    const indexDir = { x: indexTip.x-indexMcp.x, y: indexTip.y-indexMcp.y };
+    const thumbDir = { x: thumbTip.x-thumbMcp.x, y: thumbTip.y-thumbMcp.y };
+    const iLen = Math.hypot(indexDir.x,indexDir.y) || 0.0001;
+    const tLen = Math.hypot(thumbDir.x,thumbDir.y) || 0.0001;
+    const cos = (indexDir.x*thumbDir.x + indexDir.y*thumbDir.y)/(iLen*tLen);
+    // thumb roughly perpendicular-ish to index (not folded flat alongside it)
+    return cos < 0.75;
+  }
+
+  // is this hand's index finger roughly aiming toward the given face center (both in raw 0-1 landmark space)
+  function isAimingAt(lm, targetPt){
+    const mcp = lm[5], tip = lm[8];
+    const dir = { x: tip.x-mcp.x, y: tip.y-mcp.y };
+    const dirLen = Math.hypot(dir.x,dir.y) || 0.0001;
+    const toTarget = { x: targetPt.x-tip.x, y: targetPt.y-tip.y };
+    const tLen = Math.hypot(toTarget.x,toTarget.y) || 0.0001;
+    const cos = (dir.x*toTarget.x + dir.y*toTarget.y) / (dirLen*tLen);
+    return cos > 0.90; // within ~25 degrees
   }
 
   function faceBBox(faceLm){
@@ -431,11 +478,26 @@
     return { cx:(minX+maxX)/2, cy:(minY+maxY)/2, w:maxX-minX, h:maxY-minY };
   }
 
-  function showToast(msg){
-    toastTextEl.textContent = msg;
+  const FEEDBACK_ICONS = {
+    theme:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="8.2" cy="10" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.8" cy="10" r="1.3" fill="currentColor" stroke="none"/></svg>',
+    dotsOn: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+    dotsOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 8l8 8M16 8l-8 8"/></svg>',
+    mirror: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3v16l-4-3z"/><path d="M20 7l-4-3v16l4-3z"/></svg>',
+    shot:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="4"/><path d="M4 8h4l2-2.5h4L16 8h4v11H4z"/></svg>',
+    cam:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 13a8 8 0 0 0 14.9 4"/></svg>',
+    maskOn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10c0-4 3.5-7 8-7s8 3 8 7-3 8-8 8-8-4-8-8z"/><circle cx="9" cy="10" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    maskOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10c0-4 3.5-7 8-7s8 3 8 7-3 8-8 8-8-4-8-8z"/><path d="M8 8l8 8"/></svg>',
+    shoot:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>',
+  };
+  function showIcon(type){
+    const svg = FEEDBACK_ICONS[type];
+    if(!svg) return;
+    toastEl.innerHTML = svg;
+    toastEl.classList.remove('show');
+    void toastEl.offsetWidth; // restart animation
     toastEl.classList.add('show');
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(()=>toastEl.classList.remove('show'), 1800);
+    clearTimeout(showIcon._t);
+    showIcon._t = setTimeout(()=>toastEl.classList.remove('show'), 1400);
   }
   function resizeCanvas(){
     const dpr = Math.min(window.devicePixelRatio||1, 2);
@@ -459,7 +521,7 @@
       minDetectionConfidence: 0.65,
       minTrackingConfidence: 0.6
     });
-    handsModel.onResults((r)=>{ lastResults = r; });
+    handsModel.onResults(onResults);
   }
 
   function initFace(){
@@ -479,7 +541,6 @@
     loadingEl.style.display = 'flex';
     loadingEl.style.opacity = '1';
     errorEl.style.display = 'none';
-    statusText.textContent = 'Menyiapkan';
     statusEl.classList.remove('live');
 
     try{
@@ -500,6 +561,7 @@
       camera = new Camera(videoEl, {
         onFrame: async () => {
           if(handsModel) await handsModel.send({image: videoEl});
+          // run face mesh on every other frame to keep frame rate high
           faceFrameToggle = !faceFrameToggle;
           if(faceModel && faceFrameToggle) await faceModel.send({image: videoEl});
         },
@@ -511,7 +573,6 @@
       running = true;
       loadingEl.style.opacity = '0';
       setTimeout(()=>{ loadingEl.style.display='none'; }, 500);
-      statusText.textContent = 'Live';
       statusEl.classList.add('live');
       requestAnimationFrame(renderLoop);
     }catch(err){
@@ -520,13 +581,75 @@
       loadingEl.style.display = 'none';
       errorEl.style.display = 'flex';
       errorMsgEl.textContent = (err && err.message) ? err.message : 'Gagal mengakses kamera.';
-      statusText.textContent = 'Terputus';
     }
   }
 
   retryBtn.addEventListener('click', startCamera);
 
-  /* ================= Drawing helpers ================= */
+  /* ================= Hand result processing ================= */
+  function onResults(results){
+    lastResults = results;
+  }
+
+  function updateSmoothState(){
+    // decay all slots first
+    for(const s of pointSlots) s.life = Math.max(0, s.life - 1);
+
+    // gather every currently-extended fingertip across all visible hands, in display space
+    let rawPoints = [];
+    if(lastResults && lastResults.multiHandLandmarks){
+      for(const lm of lastResults.multiHandLandmarks){
+        for(const e of getExtendedFingertips(lm)){
+          const p = e.point;
+          rawPoints.push({ x: mirrored ? (1-p.x) : p.x, y: p.y });
+        }
+      }
+    }
+    // stable left-to-right ordering so a given finger tends to keep feeding the same slot
+    rawPoints.sort((a,b)=>a.x-b.x);
+    rawPoints = rawPoints.slice(0, MAX_SLOTS);
+
+    // match each raw point to the nearest currently-active slot (falls back to any free slot)
+    const usedSlots = new Set();
+    for(const rp of rawPoints){
+      let bestIdx = -1, bestDist = Infinity;
+      for(let i=0;i<pointSlots.length;i++){
+        if(usedSlots.has(i)) continue;
+        const s = pointSlots[i];
+        if(!s.active) continue;
+        const d = Math.hypot(s.x-rp.x, s.y-rp.y);
+        if(d < bestDist){ bestDist = d; bestIdx = i; }
+      }
+      if(bestIdx === -1 || bestDist > 0.18){
+        // no close active slot: take the first free (inactive) slot
+        for(let i=0;i<pointSlots.length;i++){
+          if(!usedSlots.has(i) && !pointSlots[i].active){ bestIdx = i; break; }
+        }
+      }
+      if(bestIdx === -1){
+        for(let i=0;i<pointSlots.length;i++){ if(!usedSlots.has(i)){ bestIdx = i; break; } }
+      }
+      if(bestIdx === -1) continue;
+      const s = pointSlots[bestIdx];
+      const smoothed = lerpPt(s.active ? {x:s.x,y:s.y} : null, rp, SMOOTH_FACTOR);
+      s.x = smoothed.x; s.y = smoothed.y; s.active = true; s.life = LIFE_DECAY;
+      usedSlots.add(bestIdx);
+    }
+
+    // build this frame's shape groups from all still-alive slots, in stable x order
+    const alive = pointSlots.filter(s=>s.life>0).sort((a,b)=>a.x-b.x);
+    const groupSizes = decomposeCount(alive.length);
+    const groups = [];
+    let idx = 0;
+    for(let g=0; g<groupSizes.length; g++){
+      const size = groupSizes[g];
+      groups.push({ points: alive.slice(idx, idx+size), size, colorSeed: g });
+      idx += size;
+    }
+    shapeGroups = groups;
+  }
+
+  /* ================= Drawing ================= */
   function drawBackgroundVideo(vw, vh){
     octx.save();
     if(mirrored){ octx.translate(vw,0); octx.scale(-1,1); }
@@ -536,6 +659,143 @@
 
   function toCanvasSpace(pt, vw, vh, scale, offX, offY){
     return { x: offX + pt.x*vw*scale, y: offY + pt.y*vh*scale };
+  }
+
+  // rotating hue per shape group so colors keep shifting instead of being one fixed theme
+  function groupHue(colorSeed){
+    const themeBias = THEMES[currentTheme] ? THEMES[currentTheme].hue : 0;
+    return ((tGlobal*0.015 + colorSeed*67 + themeBias) % 360 + 360) % 360;
+  }
+  function groupPalette(colorSeed){
+    const h = groupHue(colorSeed);
+    return {
+      glow:  `hsl(${h},95%,62%)`,
+      glow2: `hsl(${(h+40)%360},95%,60%)`,
+      fill1: `hsl(${h},90%,55%)`,
+      fill2: `hsl(${(h+90)%360},90%,60%)`,
+      fill3: `hsl(${(h+180)%360},90%,60%)`,
+      hueRotateDeg: h,
+    };
+  }
+
+  function drawShapes(cw, ch){
+    const vw = offscreen.width, vh = offscreen.height;
+    const scale = Math.max(cw/vw, ch/vh);
+    const offX = (cw - vw*scale)/2;
+    const offY = (ch - vh*scale)/2;
+
+    for(const group of shapeGroups){
+      if(group.points.length < 2) continue;
+      const pal = groupPalette(group.colorSeed);
+      const pts = group.points.map(p=>toCanvasSpace(p, vw,vh,scale,offX,offY));
+
+      if(group.size === 2){
+        drawLineShape(pts[0], pts[1], pal);
+      } else {
+        drawPolygonShape(pts, pal, vw, vh, scale, offX, offY);
+      }
+    }
+  }
+
+  function drawLineShape(a, b, pal){
+    ctx.save();
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = pal.glow;
+    const grad = ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+    grad.addColorStop(0, pal.fill1);
+    grad.addColorStop(1, pal.fill2);
+    ctx.strokeStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(a.x,a.y);
+    ctx.lineTo(b.x,b.y);
+    ctx.stroke();
+    ctx.restore();
+    [a,b].forEach(c=>{
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(c.x,c.y,5,0,Math.PI*2);
+      ctx.fillStyle = pal.glow;
+      ctx.shadowBlur = 14; ctx.shadowColor = pal.glow;
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  // sort points around their centroid so 3+ vertices form a clean, non-crossing polygon
+  function orderAroundCentroid(pts){
+    let cx=0, cy=0;
+    for(const p of pts){ cx+=p.x; cy+=p.y; }
+    cx/=pts.length; cy/=pts.length;
+    return pts.slice().sort((a,b)=> Math.atan2(a.y-cy,a.x-cx) - Math.atan2(b.y-cy,b.x-cx));
+  }
+
+  function drawPolygonShape(pts, pal, vw, vh, scale, offX, offY){
+    const ordered = orderAroundCentroid(pts);
+    const path = new Path2D();
+    path.moveTo(ordered[0].x, ordered[0].y);
+    for(let i=1;i<ordered.length;i++) path.lineTo(ordered[i].x, ordered[i].y);
+    path.closePath();
+
+    ctx.save();
+    ctx.clip(path);
+
+    // duotone / x-ray video content inside the shape, with a slowly drifting random-ish filter
+    const rnd = Math.sin(tGlobal*0.0009 + pal.hueRotateDeg)*0.5+0.5;
+    ctx.filter = `invert(1) saturate(${1.3+rnd*0.6}) hue-rotate(${pal.hueRotateDeg}deg) brightness(1.15) contrast(${1.0+rnd*0.2})`;
+    ctx.drawImage(offscreen, offX, offY, vw*scale, vh*scale);
+    ctx.filter = 'none';
+
+    // color wash across the shape
+    let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+    for(const p of ordered){ if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y; }
+    const grad = ctx.createLinearGradient(minX,minY,maxX,maxY);
+    grad.addColorStop(0, pal.fill1);
+    grad.addColorStop(0.5, pal.fill2);
+    grad.addColorStop(1, pal.fill3);
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.65;
+    ctx.fillStyle = grad;
+    ctx.fill(path);
+
+    // shimmer sweep
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.16;
+    const shimmerT = (Math.sin(tGlobal*0.0022 + pal.hueRotateDeg)+1)/2;
+    const shimmerY = lerp(minY, maxY, shimmerT);
+    const shimmerGrad = ctx.createLinearGradient(0, shimmerY-40, 0, shimmerY+40);
+    shimmerGrad.addColorStop(0,'rgba(255,255,255,0)');
+    shimmerGrad.addColorStop(0.5,'rgba(255,255,255,0.9)');
+    shimmerGrad.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = shimmerGrad;
+    ctx.fillRect(minX-20, shimmerY-40, (maxX-minX)+40, 80);
+
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+
+    // glowing neon outline
+    ctx.save();
+    ctx.lineWidth = 4.5;
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = pal.glow;
+    ctx.strokeStyle = pal.glow;
+    ctx.stroke(path);
+    ctx.restore();
+
+    // vertex accents
+    ctx.save();
+    ordered.forEach((c,i)=>{
+      ctx.beginPath();
+      ctx.arc(c.x,c.y, 5,0,Math.PI*2);
+      ctx.fillStyle = i%2===0 ? pal.glow : pal.glow2;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.fill();
+    });
+    ctx.restore();
   }
 
   // small glowing marker on every fingertip that is currently open/extended
@@ -583,313 +843,8 @@
     ctx.restore();
   }
 
-  /* ================= Dynamic finger-count polygon shapes ================= */
-  // Rule set (as requested):
-  //  2 fingers -> line, 3 -> triangle, 4 -> square, 5 -> pentagon.
-  //  Beyond 5, split off 4-point groups (squares) until <=5 points remain,
-  //  e.g. 6 => [4,2], 7 => [4,3], 8 => [4,4], 9 => [4,5], 10 => [4,4,2].
-  function decomposeGroups(n){
-    const groups = [];
-    let remaining = n;
-    while(remaining > 5){ groups.push(4); remaining -= 4; }
-    if(remaining > 0) groups.push(remaining);
-    return groups;
-  }
+  /* ================= Gestures: pinch -> code rain + mask, gun -> shoot -> mask v2 ================= */
 
-  function collectExtendedPoints(cw,ch){
-    if(!lastResults || !lastResults.multiHandLandmarks) return [];
-    const vw = offscreen.width, vh = offscreen.height;
-    const scale = Math.max(cw/vw, ch/vh);
-    const offX = (cw - vw*scale)/2;
-    const offY = (ch - vh*scale)/2;
-    const pts = [];
-    for(const lm of lastResults.multiHandLandmarks){
-      const ext = getExtendedFingertips(lm);
-      for(const e of ext){
-        const raw = e.point;
-        const p = { x: mirrored ? (1-raw.x) : raw.x, y: raw.y };
-        pts.push(toCanvasSpace(p, vw,vh,scale,offX,offY));
-      }
-    }
-    return pts;
-  }
-
-  function sortAroundCentroid(pts){
-    let cx=0, cy=0;
-    for(const p of pts){ cx+=p.x; cy+=p.y; }
-    cx/=pts.length; cy/=pts.length;
-    return pts.slice().sort((a,b)=> Math.atan2(a.y-cy,a.x-cx) - Math.atan2(b.y-cy,b.x-cx));
-  }
-
-  let glitchTimer = 0, glitchActive = false, glitchHue = 0, glitchOffset = {x:0,y:0};
-  function updateGlitch(){
-    glitchTimer++;
-    if(glitchTimer > 70 + Math.random()*50){
-      glitchTimer = 0;
-      glitchActive = true;
-      glitchHue = Math.random()*360;
-      glitchOffset = { x:(Math.random()-0.5)*14, y:(Math.random()-0.5)*14 };
-      setTimeout(()=>{ glitchActive = false; }, 90);
-    }
-  }
-
-  function drawFingerShapes(cw,ch){
-    const pts = collectExtendedPoints(cw,ch);
-    const n = pts.length;
-    if(n < 2){ hintEl.style.opacity = '1'; return; }
-    hintEl.style.opacity = '0';
-
-    const groups = decomposeGroups(n);
-    const theme = THEMES[currentTheme];
-    let cursor = 0;
-
-    groups.forEach((size, gi) => {
-      const groupPts = sortAroundCentroid(pts.slice(cursor, cursor+size));
-      cursor += size;
-      const groupHue = (theme.hueBase + gi*95 + tGlobal*0.012) % 360;
-
-      ctx.save();
-
-      // soft translucent fill for shapes with 3+ points
-      if(groupPts.length >= 3){
-        ctx.beginPath();
-        groupPts.forEach((p,i)=> i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
-        ctx.closePath();
-        const fillGrad = ctx.createLinearGradient(groupPts[0].x, groupPts[0].y, groupPts[groupPts.length-1].x, groupPts[groupPts.length-1].y);
-        fillGrad.addColorStop(0, `hsla(${groupHue},95%,60%,0.16)`);
-        fillGrad.addColorStop(1, `hsla(${(groupHue+80)%360},95%,60%,0.16)`);
-        ctx.fillStyle = fillGrad;
-        ctx.fill();
-      }
-
-      // edges — each edge cycles its own hue over time so the shape never reads as one flat color
-      const edgeCount = groupPts.length >= 2 ? groupPts.length : 1;
-      const loopEdges = groupPts.length >= 3 ? edgeCount : 1;
-      for(let i=0;i<loopEdges;i++){
-        const a = groupPts[i];
-        const b = groupPts[(i+1) % groupPts.length];
-        if(groupPts.length === 2 && i>0) break;
-        const edgeHue = (groupHue + i*46 + tGlobal*0.05) % 360;
-        const color = `hsl(${edgeHue},95%,62%)`;
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.shadowBlur = 16;
-        ctx.shadowColor = color;
-        ctx.strokeStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(a.x,a.y);
-        ctx.lineTo(b.x,b.y);
-        ctx.stroke();
-
-        // subtle random glitch duplicate for visual texture
-        if(glitchActive){
-          ctx.save();
-          ctx.globalAlpha = 0.5;
-          ctx.strokeStyle = `hsl(${(glitchHue+i*30)%360},95%,65%)`;
-          ctx.shadowBlur = 6;
-          ctx.beginPath();
-          ctx.moveTo(a.x+glitchOffset.x, a.y+glitchOffset.y);
-          ctx.lineTo(b.x+glitchOffset.x, b.y+glitchOffset.y);
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
-
-      // vertex nodes
-      groupPts.forEach((p,i)=>{
-        const vHue = (groupHue + i*46 + tGlobal*0.05) % 360;
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,5,0,Math.PI*2);
-        ctx.fillStyle = `hsl(${vHue},100%,72%)`;
-        ctx.shadowBlur = 12; ctx.shadowColor = `hsl(${vHue},100%,65%)`;
-        ctx.fill();
-      });
-
-      ctx.restore();
-    });
-  }
-
-  /* ================= Gestures ================= */
-  function updateGestures(ts, cw, ch){
-    let anyPinch = false, anyGun = false, pinchPointCanvas = null, gunPointCanvas = null;
-
-    if(lastResults && lastResults.multiHandLandmarks){
-      const vw = offscreen.width, vh = offscreen.height;
-      const scale = Math.max(cw/vw, ch/vh);
-      const offX = (cw - vw*scale)/2;
-      const offY = (ch - vh*scale)/2;
-
-      for(const lm of lastResults.multiHandLandmarks){
-        if(isPinching(lm)){
-          anyPinch = true;
-          const mid = { x:(lm[4].x+lm[8].x)/2, y:(lm[4].y+lm[8].y)/2 };
-          const p = { x: mirrored ? (1-mid.x):mid.x, y: mid.y };
-          pinchPointCanvas = toCanvasSpace(p, vw,vh,scale,offX,offY);
-        }
-        if(isGunShape(lm)){
-          anyGun = true;
-          const tip = lm[8];
-          const p = { x: mirrored ? (1-tip.x):tip.x, y: tip.y };
-          gunPointCanvas = toCanvasSpace(p, vw,vh,scale,offX,offY);
-        }
-      }
-    }
-
-    // ---- pinch hold -> toggle mask on/off with a magic swirl transition ----
-    if(anyPinch){
-      if(pinchHoldStart===null) pinchHoldStart = ts;
-      pinchActive = true;
-      if(pinchPointCanvas) lastPinchCanvasPoint = pinchPointCanvas;
-    } else {
-      if(pinchActive && pinchHoldStart!==null && (ts-pinchHoldStart) >= 1800){
-        triggerPinchToggle();
-      }
-      pinchActive = false;
-      pinchHoldStart = null;
-    }
-
-    // ---- finger-gun hold -> transform into hacker mask ----
-    if(anyGun){
-      if(gunHoldStart===null) gunHoldStart = ts;
-      gunActive = true;
-      if(gunPointCanvas) lastGunCanvasPoint = gunPointCanvas;
-      if((ts-gunHoldStart) >= 1400 && !gunFiredThisHold){
-        triggerGunShoot();
-        gunFiredThisHold = true;
-      }
-    } else {
-      gunHoldStart = null;
-      gunActive = false;
-      gunFiredThisHold = false;
-    }
-
-    const targetScary = (maskOn && maskType==='hacker') ? 1 : 0;
-    scaryFilterStrength = lerp(scaryFilterStrength, targetScary, 0.05);
-    shootFlash = Math.max(0, shootFlash - 0.045);
-    if(shakeFrames > 0) shakeFrames--;
-  }
-
-  function triggerPinchToggle(){
-    const origin = lastPinchCanvasPoint || { x:window.innerWidth/2, y:window.innerHeight/2 };
-    spawnMagicSwirl(origin);
-    if(maskOn){
-      maskTransition = { type:'outro', start: performance.now(), duration: 750 };
-      maskOn = false;
-      showToast('Masker dinonaktifkan');
-    } else {
-      maskOn = true;
-      maskTransition = { type:'intro', start: performance.now(), duration: 850 };
-      showToast(maskType==='hacker' ? 'Masker hacker diaktifkan' : 'Masker diaktifkan');
-    }
-  }
-
-  function triggerGunShoot(){
-    shootFlash = 1;
-    shakeFrames = 10;
-    const origin = lastGunCanvasPoint || { x:window.innerWidth/2, y:window.innerHeight*0.35 };
-    spawnShootSparks(origin);
-    shockRing = { start: performance.now(), duration: 700, origin };
-    maskType = 'hacker';
-    maskOn = true;
-    maskTransition = { type:'shoot', start: performance.now(), duration: 600 };
-    showToast('Mode hacker diaktifkan');
-  }
-
-  /* ---- particle system: magic swirl + shoot sparks share one pool ---- */
-  function spawnMagicSwirl(origin){
-    const n = 46;
-    for(let i=0;i<n;i++){
-      const ang = (Math.PI*2/n)*i + Math.random()*0.3;
-      const radius = 26 + Math.random()*18;
-      particles.push({
-        type:'magic',
-        cx: origin.x, cy: origin.y,
-        ang, radius,
-        spin: 0.05 + Math.random()*0.05,
-        rise: 0.6 + Math.random()*0.8,
-        size: 2 + Math.random()*2.4,
-        hue: Math.random()*360,
-        life: 0, maxLife: 55 + Math.random()*35
-      });
-    }
-  }
-  function spawnShootSparks(origin){
-    const n = 55;
-    for(let i=0;i<n;i++){
-      const ang = Math.random()*Math.PI*2;
-      const spd = 3.5 + Math.random()*8;
-      particles.push({
-        type:'spark',
-        x: origin.x, y: origin.y,
-        vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
-        g: 0.16,
-        size: 2 + Math.random()*3.2,
-        hue: 10 + Math.random()*40,
-        life: 0, maxLife: 32 + Math.random()*22
-      });
-    }
-  }
-  function updateParticles(){
-    for(let i=particles.length-1;i>=0;i--){
-      const p = particles[i];
-      p.life++;
-      if(p.type==='spark'){
-        p.vy += p.g;
-        p.x += p.vx; p.y += p.vy;
-      } else if(p.type==='magic'){
-        p.ang += p.spin;
-        p.cy -= p.rise;
-      }
-      if(p.life > p.maxLife || (p.y!==undefined && p.y > window.innerHeight+60)){ particles.splice(i,1); }
-    }
-  }
-  function drawParticles(){
-    ctx.save();
-    for(const p of particles){
-      const t = p.life / p.maxLife;
-      const alpha = clamp(1-t, 0, 1);
-      if(p.type==='magic'){
-        const x = p.cx + Math.cos(p.ang)*p.radius*(1-t*0.3);
-        const y = p.cy + Math.sin(p.ang)*p.radius*(1-t*0.3);
-        ctx.beginPath();
-        ctx.arc(x,y,p.size,0,Math.PI*2);
-        ctx.fillStyle = `hsla(${p.hue},95%,72%,${alpha})`;
-        ctx.shadowBlur = 10; ctx.shadowColor = `hsla(${p.hue},95%,65%,1)`;
-        ctx.fill();
-      } else {
-        ctx.beginPath();
-        ctx.arc(p.x,p.y, p.size*(1-t*0.4), 0, Math.PI*2);
-        ctx.fillStyle = `hsla(${p.hue},95%,60%,${alpha})`;
-        ctx.shadowBlur = 10; ctx.shadowColor = `hsla(${p.hue},95%,55%,1)`;
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-
-  function drawShockRing(cw,ch){
-    if(!shockRing) return;
-    const t = clamp((performance.now()-shockRing.start)/shockRing.duration, 0, 1);
-    if(t>=1){ shockRing = null; return; }
-    const r = easeOutCubic(t) * Math.max(cw,ch) * 0.55;
-    const alpha = 1-t;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(shockRing.origin.x, shockRing.origin.y, r, 0, Math.PI*2);
-    ctx.lineWidth = 6*(1-t)+1;
-    ctx.strokeStyle = `rgba(61,241,255,${alpha*0.7})`;
-    ctx.shadowBlur = 24; ctx.shadowColor = '#3df1ff';
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(shockRing.origin.x, shockRing.origin.y, r*0.7, 0, Math.PI*2);
-    ctx.lineWidth = 3*(1-t)+1;
-    ctx.strokeStyle = `rgba(255,90,60,${alpha*0.6})`;
-    ctx.shadowBlur = 18; ctx.shadowColor = '#ff5a3c';
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  /* ---- face tracking helper for masks ---- */
   function faceCenterCanvas(cw,ch){
     if(!lastFaceResults || !lastFaceResults.multiFaceLandmarks || !lastFaceResults.multiFaceLandmarks.length) return null;
     const lm = lastFaceResults.multiFaceLandmarks[0];
@@ -900,6 +855,7 @@
     const offY = (ch - vh*scale)/2;
     const p = { x: mirrored ? (1-bb.cx) : bb.cx, y: bb.cy };
     const c = toCanvasSpace(p, vw,vh,scale,offX,offY);
+    // eye landmarks for roll angle (33 = left eye outer, 263 = right eye outer)
     const eL = lm[33], eR = lm[263];
     const eLp = { x: mirrored ? (1-eL.x):eL.x, y:eL.y };
     const eRp = { x: mirrored ? (1-eR.x):eR.x, y:eR.y };
@@ -907,12 +863,210 @@
     const eRc = toCanvasSpace(eRp, vw,vh,scale,offX,offY);
     const angle = Math.atan2(eRc.y-eLc.y, eRc.x-eLc.x);
     const eyeDist = dist(eLc,eRc);
-    return { cx:c.x, cy:c.y, angle, eyeDist };
+    return { cx:c.x, cy:c.y, angle, eyeDist, w: bb.w*vw*scale, h: bb.h*vh*scale };
+  }
+
+  function updateGestures(ts, cw, ch){
+    let anyPinch = false, anyGun = false, pinchPointCanvas = null;
+
+    if(lastResults && lastResults.multiHandLandmarks){
+      const vw = offscreen.width, vh = offscreen.height;
+      const scale = Math.max(cw/vw, ch/vh);
+      const offX = (cw - vw*scale)/2;
+      const offY = (ch - vh*scale)/2;
+
+      let faceRaw = null;
+      if(lastFaceResults && lastFaceResults.multiFaceLandmarks && lastFaceResults.multiFaceLandmarks.length){
+        faceRaw = faceBBox(lastFaceResults.multiFaceLandmarks[0]);
+      }
+
+      for(const lm of lastResults.multiHandLandmarks){
+        if(isPinching(lm)){
+          anyPinch = true;
+          const mid = { x:(lm[4].x+lm[8].x)/2, y:(lm[4].y+lm[8].y)/2 };
+          const p = { x: mirrored ? (1-mid.x):mid.x, y: mid.y };
+          pinchPointCanvas = toCanvasSpace(p, vw,vh,scale,offX,offY);
+        }
+        if(faceRaw && isGunShape(lm) && isAimingAt(lm, faceRaw)){
+          anyGun = true;
+          const tip = { x: mirrored ? (1-lm[8].x) : lm[8].x, y: lm[8].y };
+          gunMuzzlePoint = toCanvasSpace(tip, vw,vh,scale,offX,offY);
+        }
+      }
+    }
+
+    // ---- pinch hold -> toggle mask + spawn code-rain burst on release ----
+    if(anyPinch){
+      if(pinchHoldStart===null) pinchHoldStart = ts;
+      pinchActive = true;
+      if(pinchPointCanvas) lastPinchCanvasPoint = pinchPointCanvas;
+    } else {
+      if(pinchActive && pinchHoldStart!==null && (ts-pinchHoldStart) >= 3000){
+        triggerPinchRelease();
+      }
+      pinchActive = false;
+      pinchHoldStart = null;
+    }
+
+    // ---- gun aim hold -> shoot transition -> mask v2 ----
+    if(anyGun){
+      if(gunHoldStart===null) gunHoldStart = ts;
+      gunActive = true;
+      if((ts-gunHoldStart) >= 2000 && !gunFiredThisHold){
+        triggerGunShoot();
+        gunFiredThisHold = true;
+      }
+    } else {
+      gunHoldStart = null;
+      gunActive = false;
+      gunFiredThisHold = false;
+    }
+
+    // ease scary filter strength toward target (1 while v2, else 0)
+    const targetScary = (maskState==='v2') ? 1 : 0;
+    scaryFilterStrength = lerp(scaryFilterStrength, targetScary, 0.04);
+    shootFlash = Math.max(0, shootFlash - 0.045);
+    shakeMag = Math.max(0, shakeMag - 1.1);
+  }
+
+  function drawShockwaves(cw,ch){
+    const now = performance.now();
+    for(let i=shockwaves.length-1;i>=0;i--){
+      const sw = shockwaves[i];
+      const t = clamp((now-sw.start)/sw.duration, 0, 1);
+      if(t>=1){ shockwaves.splice(i,1); continue; }
+      const r = lerp(10, Math.max(cw,ch)*0.6, easeOutCubic(t));
+      const alpha = 1-t;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, r, 0, Math.PI*2);
+      ctx.lineWidth = 6*(1-t)+1;
+      ctx.strokeStyle = `rgba(255,90,60,${alpha*0.8})`;
+      ctx.shadowBlur = 24; ctx.shadowColor = '#ff5a3c';
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function triggerPinchRelease(){
+    const origin = lastPinchCanvasPoint || { x:window.innerWidth/2, y:window.innerHeight/2 };
+    spawnCodeBurst(origin);
+    if(maskState === 'off'){
+      maskState = 'v1';
+      maskTransition = { type:'intro', start: performance.now(), duration: 900 };
+      showIcon('maskOn');
+    } else {
+      maskTransition = { type:'outro', start: performance.now(), duration: 700 };
+      showIcon('maskOff');
+    }
+  }
+
+  function triggerGunShoot(){
+    shootFlash = 1;
+    const origin = gunMuzzlePoint || { x:window.innerWidth/2, y:window.innerHeight*0.35 };
+    spawnShootSparks(origin);
+    shockwaves.push({ x:origin.x, y:origin.y, start:performance.now(), duration:600 });
+    maskState = 'v2';
+    maskTransition = { type:'shoot', start: performance.now(), duration: 650 };
+    showIcon('shoot');
+    triggerShake(14);
+  }
+
+  /* ---- particle system: code-rain burst + shoot sparks share one pool ---- */
+  const CODE_CHARS = '01アイウエオカキクケコ$#%&<>{}[]/\\'.split('');
+  function spawnCodeBurst(origin){
+    const n = 70;
+    for(let i=0;i<n;i++){
+      const ang = -Math.PI/2 + (Math.random()-0.5)*Math.PI*1.4;
+      const spd = 2 + Math.random()*4;
+      particles.push({
+        type:'code',
+        x: origin.x + (Math.random()-0.5)*20,
+        y: origin.y + (Math.random()-0.5)*20,
+        vx: Math.cos(ang)*spd*0.4,
+        vy: Math.sin(ang)*spd - 2,
+        g: 0.14 + Math.random()*0.08,
+        char: CODE_CHARS[(Math.random()*CODE_CHARS.length)|0],
+        size: 12 + Math.random()*10,
+        life: 0, maxLife: 90 + Math.random()*60,
+        hue: currentTheme
+      });
+    }
+  }
+  function spawnShootSparks(origin){
+    const n = 40;
+    for(let i=0;i<n;i++){
+      const ang = Math.random()*Math.PI*2;
+      const spd = 3 + Math.random()*7;
+      particles.push({
+        type:'spark',
+        x: origin.x, y: origin.y,
+        vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+        g: 0.18,
+        size: 2 + Math.random()*3,
+        life: 0, maxLife: 30 + Math.random()*20
+      });
+    }
+    // fast, short-lived streaking rays for a punchier muzzle flash
+    const rays = 14;
+    for(let i=0;i<rays;i++){
+      const ang = (Math.PI*2/rays)*i + (Math.random()-0.5)*0.3;
+      const spd = 14 + Math.random()*10;
+      particles.push({
+        type:'ray',
+        x: origin.x, y: origin.y,
+        vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+        g: 0,
+        size: 3,
+        life: 0, maxLife: 12 + Math.random()*6
+      });
+    }
+  }
+  function updateParticles(){
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.vy += p.g;
+      p.x += p.vx; p.y += p.vy;
+      p.life++;
+      if(p.life > p.maxLife || p.y > window.innerHeight+60){ particles.splice(i,1); }
+    }
+  }
+  function drawParticles(){
+    ctx.save();
+    for(const p of particles){
+      const t = p.life / p.maxLife;
+      const alpha = clamp(1-t, 0, 1);
+      if(p.type==='code'){
+        ctx.font = `${p.size}px monospace`;
+        ctx.fillStyle = `rgba(57,255,143,${alpha})`;
+        ctx.shadowBlur = 8; ctx.shadowColor = '#39ff8f';
+        ctx.fillText(p.char, p.x, p.y);
+      } else if(p.type==='ray'){
+        const len = 16*(1-t*0.5);
+        const vLen = Math.hypot(p.vx,p.vy) || 1;
+        const ux = p.vx/vLen, uy = p.vy/vLen;
+        ctx.beginPath();
+        ctx.moveTo(p.x - ux*len, p.y - uy*len);
+        ctx.lineTo(p.x, p.y);
+        ctx.lineWidth = p.size*(1-t);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = `rgba(255,220,150,${alpha})`;
+        ctx.shadowBlur = 12; ctx.shadowColor = '#ffb84d';
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(p.x,p.y, p.size*(1-t*0.4), 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,180,80,${alpha})`;
+        ctx.shadowBlur = 10; ctx.shadowColor = '#ff8a2e';
+        ctx.fill();
+      }
+    }
+    ctx.restore();
   }
 
   /* ---- mask rendering ---- */
   function drawMask(cw,ch){
-    if(!maskOn && !maskTransition) return;
+    if(maskState==='off' && !maskTransition) return;
     const face = faceCenterCanvas(cw,ch);
     if(!face) return;
 
@@ -921,19 +1075,21 @@
           angle:lerp(smoothFace.angle,face.angle,0.35), eyeDist:lerp(smoothFace.eyeDist,face.eyeDist,0.35) }
       : { cx:face.cx, cy:face.cy, angle:face.angle, eyeDist:face.eyeDist };
 
-    let alpha = 1, scaleMul = 1;
-    let styleKey = maskType;
+    let alpha = 1;
+    let styleKey = maskState;
     if(maskTransition){
       const t = clamp((performance.now()-maskTransition.start)/maskTransition.duration, 0, 1);
-      const e = easeInOutCubic(t);
-      if(maskTransition.type==='intro'){ alpha = e; scaleMul = lerp(0.6,1,e); }
-      else if(maskTransition.type==='shoot'){ alpha = e; scaleMul = lerp(1.4,1,e); styleKey='hacker'; }
-      else if(maskTransition.type==='outro'){ alpha = 1-e; scaleMul = lerp(1,0.6,e); }
-      if(t>=1) maskTransition = null;
+      if(maskTransition.type==='intro'){ alpha = easeOutCubic(t); styleKey='v1'; }
+      else if(maskTransition.type==='shoot'){ alpha = easeOutCubic(t); styleKey='v2'; }
+      else if(maskTransition.type==='outro'){ alpha = 1-easeOutCubic(t); styleKey = (maskState==='off'?'v1':maskState); }
+      if(t>=1){
+        if(maskTransition.type==='outro') maskState='off';
+        maskTransition = null;
+      }
     }
-    if(!maskOn && !maskTransition) return;
+    if(maskState==='off' && !maskTransition) return;
 
-    const w = Math.max(60, smoothFace.eyeDist * 3.1) * scaleMul;
+    const w = Math.max(60, smoothFace.eyeDist * 3.1);
     const h = w * 0.62;
 
     ctx.save();
@@ -941,66 +1097,68 @@
     ctx.rotate(smoothFace.angle);
     ctx.globalAlpha = clamp(alpha,0,1);
 
-    if(styleKey==='hacker'){ drawMaskHacker(w,h); } else { drawMaskClown(w,h); }
+    if(styleKey==='v2'){ drawMaskV2(w,h); } else { drawMaskV1(w,h); }
 
     ctx.restore();
   }
 
-  // Clown mask — playful, colorful, lightly glowing outline with a round red nose.
-  function drawMaskClown(w,h){
+  function drawMaskV1(w,h){
+    // playful clown mask (default first mask, triggered by pinch-hold)
     ctx.save();
     const path = new Path2D();
-    path.moveTo(-w/2, -h*0.1);
-    path.quadraticCurveTo(-w/2, -h/2, 0, -h*0.5);
-    path.quadraticCurveTo(w/2, -h/2, w/2, -h*0.1);
-    path.quadraticCurveTo(w/2, h*0.5, 0, h*0.6);
-    path.quadraticCurveTo(-w/2, h*0.5, -w/2, -h*0.1);
+    path.moveTo(0, -h*0.58);
+    path.quadraticCurveTo(w*0.5, -h*0.5, w*0.5, 0);
+    path.quadraticCurveTo(w*0.46, h*0.5, 0, h*0.62);
+    path.quadraticCurveTo(-w*0.46, h*0.5, -w*0.5, 0);
+    path.quadraticCurveTo(-w*0.5, -h*0.5, 0, -h*0.58);
     path.closePath();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillStyle = 'rgba(255,255,255,0.93)';
     ctx.fill(path);
     ctx.clip(path);
 
-    // eyebrows
-    ctx.lineWidth = 3; ctx.lineCap='round';
-    ctx.strokeStyle = '#39ff8f'; ctx.shadowBlur = 8; ctx.shadowColor = '#39ff8f';
-    [-1,1].forEach(side=>{
+    // blush cheeks
+    [-w*0.28, w*0.28].forEach(ex=>{
+      const g = ctx.createRadialGradient(ex,h*0.12,2, ex,h*0.12,w*0.15);
+      g.addColorStop(0,'rgba(255,90,140,0.55)');
+      g.addColorStop(1,'rgba(255,90,140,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(ex,h*0.12,w*0.15,0,Math.PI*2); ctx.fill();
+    });
+
+    // colorful arched eyebrows
+    ctx.lineWidth = 6; ctx.lineCap = 'round';
+    [[-w*0.26,'#3df1ff'],[w*0.26,'#ff2ea6']].forEach(([ex,color])=>{
+      ctx.strokeStyle = color;
       ctx.beginPath();
-      ctx.arc(side*w*0.22, -h*0.14, w*0.11, Math.PI*1.1, Math.PI*1.9);
+      ctx.arc(ex, -h*0.12, w*0.14, Math.PI*1.15, Math.PI*1.85);
       ctx.stroke();
     });
 
     // eyes
-    [-1,1].forEach(side=>{
-      const g = ctx.createRadialGradient(side*w*0.22,0,2, side*w*0.22,0,w*0.1);
-      g.addColorStop(0,'rgba(255,255,255,0.95)');
-      g.addColorStop(0.5,'rgba(61,241,255,0.85)');
-      g.addColorStop(1,'rgba(61,241,255,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(side*w*0.22,0,w*0.09,0,Math.PI*2); ctx.fill();
+    [-w*0.26, w*0.26].forEach(ex=>{
+      ctx.fillStyle = '#1a1a22';
+      ctx.beginPath();
+      ctx.ellipse(ex, 0, w*0.065, h*0.085, 0,0,Math.PI*2);
+      ctx.fill();
     });
 
-    // big smile
+    // round red nose
+    const noseG = ctx.createRadialGradient(-w*0.02,h*0.13,2, 0,h*0.16,w*0.09);
+    noseG.addColorStop(0,'#ff8080');
+    noseG.addColorStop(1,'#e8283d');
+    ctx.fillStyle = noseG;
+    ctx.beginPath(); ctx.arc(0,h*0.16,w*0.09,0,Math.PI*2); ctx.fill();
+
+    // wide painted smile
+    ctx.strokeStyle = '#e8283d';
+    ctx.lineWidth = w*0.045; ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#ff2ea6'; ctx.shadowBlur = 10; ctx.shadowColor = '#ff2ea6';
-    ctx.moveTo(-w*0.28, h*0.18);
-    ctx.quadraticCurveTo(0, h*0.42, w*0.28, h*0.18);
+    ctx.arc(0, h*0.05, w*0.34, Math.PI*0.12, Math.PI*0.88);
     ctx.stroke();
     ctx.restore();
 
-    // red nose
-    ctx.save();
-    const ng = ctx.createRadialGradient(0,-h*0.02,2, 0,-h*0.02,w*0.075);
-    ng.addColorStop(0,'#ffdede');
-    ng.addColorStop(0.5,'#ff3d5b');
-    ng.addColorStop(1,'#c4002b');
-    ctx.fillStyle = ng;
-    ctx.shadowBlur = 14; ctx.shadowColor = '#ff2e5b';
-    ctx.beginPath(); ctx.arc(0,-h*0.02,w*0.075,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-
-    // outline glow
+    // soft glow outline
     ctx.save();
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = '#ffe83d';
@@ -1011,76 +1169,86 @@
     drawWatermark(w,h,'#ffe83d');
   }
 
-  // Hacker mask — Guy Fawkes / Anonymous-style glowing wireframe, matching the reference art.
-  function drawMaskHacker(w,h){
-    const glowColor = '#3df1ff';
+  function drawMaskV2(w,h){
+    // elegant pale hacker mask: arched brows, thin curled mustache, pointed goatee,
+    // subtle blue glow outline -- triggered by the gun-shoot gesture
     ctx.save();
-    ctx.lineWidth = Math.max(2.2, w*0.012);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = glowColor;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = glowColor;
+    const path = new Path2D();
+    path.moveTo(0, -h*0.62);
+    path.quadraticCurveTo(w*0.5, -h*0.5, w*0.48, -h*0.05);
+    path.quadraticCurveTo(w*0.46, h*0.28, w*0.18, h*0.5);
+    path.quadraticCurveTo(w*0.08, h*0.62, 0, h*0.7);
+    path.quadraticCurveTo(-w*0.08, h*0.62, -w*0.18, h*0.5);
+    path.quadraticCurveTo(-w*0.46, h*0.28, -w*0.48, -h*0.05);
+    path.quadraticCurveTo(-w*0.5, -h*0.5, 0, -h*0.62);
+    path.closePath();
 
-    // face outline
-    ctx.beginPath();
-    ctx.moveTo(-w*0.36, -h*0.32);
-    ctx.quadraticCurveTo(-w*0.42, 0, -w*0.28, h*0.32);
-    ctx.quadraticCurveTo(-w*0.14, h*0.58, 0, h*0.62);
-    ctx.quadraticCurveTo(w*0.14, h*0.58, w*0.28, h*0.32);
-    ctx.quadraticCurveTo(w*0.42, 0, w*0.36, -h*0.32);
-    ctx.quadraticCurveTo(0, -h*0.5, -w*0.36, -h*0.32);
-    ctx.stroke();
+    ctx.fillStyle = 'rgba(244,251,255,0.95)';
+    ctx.fill(path);
+    ctx.clip(path);
+
+    const shade = ctx.createRadialGradient(0,-h*0.1,w*0.05, 0,0,w*0.6);
+    shade.addColorStop(0,'rgba(255,255,255,0.35)');
+    shade.addColorStop(1,'rgba(150,175,200,0.28)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(-w/2,-h*0.7,w,h*1.5);
 
     // thin arched eyebrows
-    [-1,1].forEach(side=>{
+    ctx.strokeStyle = '#1c1f26';
+    ctx.lineWidth = 3; ctx.lineCap = 'round';
+    [-w*0.24, w*0.24].forEach(ex=>{
       ctx.beginPath();
-      ctx.moveTo(side*w*0.10, -h*0.18);
-      ctx.quadraticCurveTo(side*w*0.24, -h*0.30, side*w*0.34, -h*0.16);
+      ctx.moveTo(ex-w*0.1, -h*0.14);
+      ctx.quadraticCurveTo(ex, -h*0.25, ex+w*0.1, -h*0.13);
       ctx.stroke();
     });
 
-    // narrow almond eyes
-    [-1,1].forEach(side=>{
+    // eye slits with a faint blue inner glow
+    [-w*0.22, w*0.22].forEach(ex=>{
+      ctx.fillStyle = '#12151c';
       ctx.beginPath();
-      ctx.moveTo(side*w*0.10, -h*0.06);
-      ctx.quadraticCurveTo(side*w*0.22, -h*0.14, side*w*0.34, -h*0.05);
-      ctx.quadraticCurveTo(side*w*0.22, -h*0.01, side*w*0.10, -h*0.06);
-      ctx.stroke();
+      ctx.ellipse(ex,-h*0.02, w*0.09, h*0.045, -0.1,0,Math.PI*2);
+      ctx.fill();
+      const g = ctx.createRadialGradient(ex,-h*0.02,1, ex,-h*0.02,w*0.08);
+      g.addColorStop(0,'rgba(120,220,255,0.8)');
+      g.addColorStop(1,'rgba(120,220,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(ex,-h*0.02,w*0.08,h*0.05,0,0,Math.PI*2); ctx.fill();
     });
 
-    // curled mustache — two S-hooks meeting at the philtrum
-    [-1,1].forEach(side=>{
-      ctx.beginPath();
-      ctx.moveTo(0, h*0.10);
-      ctx.quadraticCurveTo(side*w*0.16, h*0.06, side*w*0.30, h*0.14);
-      ctx.quadraticCurveTo(side*w*0.40, h*0.18, side*w*0.34, h*0.28);
-      ctx.quadraticCurveTo(side*w*0.30, h*0.20, side*w*0.20, h*0.20);
-      ctx.stroke();
-    });
-
-    // faint smile line under the mustache
+    // thin curled mustache
+    ctx.strokeStyle = '#1c1f26';
+    ctx.lineWidth = w*0.028; ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(-w*0.14, h*0.22);
-    ctx.quadraticCurveTo(0, h*0.30, w*0.14, h*0.22);
+    ctx.moveTo(-w*0.02, h*0.14);
+    ctx.quadraticCurveTo(-w*0.16, h*0.16, -w*0.26, h*0.06);
+    ctx.moveTo(w*0.02, h*0.14);
+    ctx.quadraticCurveTo(w*0.16, h*0.16, w*0.26, h*0.06);
+    ctx.stroke();
+
+    // faint smile line
+    ctx.strokeStyle = 'rgba(28,31,38,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, h*0.18, w*0.14, Math.PI*0.15, Math.PI*0.85);
     ctx.stroke();
 
     // pointed goatee
+    ctx.fillStyle = '#1c1f26';
     ctx.beginPath();
-    ctx.moveTo(-w*0.12, h*0.36);
-    ctx.quadraticCurveTo(0, h*0.62, w*0.12, h*0.36);
-    ctx.stroke();
-
+    ctx.moveTo(-w*0.06, h*0.34);
+    ctx.quadraticCurveTo(0, h*0.62, w*0.06, h*0.34);
+    ctx.quadraticCurveTo(0, h*0.42, -w*0.06, h*0.34);
+    ctx.fill();
     ctx.restore();
 
-    // subtle inner glow wash
+    // subtle blue glow outline (kept deliberately light)
     ctx.save();
-    ctx.globalAlpha = 0.10;
-    const g = ctx.createRadialGradient(0,0,w*0.05, 0,0,w*0.55);
-    g.addColorStop(0,'rgba(61,241,255,0.9)');
-    g.addColorStop(1,'rgba(61,241,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.ellipse(0,0,w*0.5,h*0.6,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#3df1ff';
+    ctx.shadowBlur = 10; ctx.shadowColor = '#3df1ff';
+    ctx.stroke(path);
     ctx.restore();
 
     drawWatermark(w,h,'#3df1ff');
@@ -1088,30 +1256,31 @@
 
   function drawWatermark(w,h,color){
     ctx.save();
-    ctx.globalAlpha = 0.85;
+    ctx.globalAlpha = 0.9;
     ctx.textAlign = 'center';
-    ctx.font = `600 ${Math.max(8,w*0.055)}px 'Segoe UI', system-ui, sans-serif`;
+    ctx.font = `600 ${Math.max(9,w*0.07)}px 'Segoe UI', system-ui, sans-serif`;
     ctx.fillStyle = color;
-    ctx.shadowBlur = 5; ctx.shadowColor = color;
+    ctx.shadowBlur = 6; ctx.shadowColor = color;
     ctx.letterSpacing = '2px';
-    ctx.fillText('YNA STORE', 0, h*0.72);
+    ctx.fillText('YNA STORE', 0, h*0.5);
     ctx.restore();
   }
 
-  /* ---- post-processing overlay for hacker mode + shoot flash ---- */
+  /* ---- scary post-processing overlay for mask V2 ---- */
   function drawScaryOverlay(cw,ch){
     const s = scaryFilterStrength;
     if(s <= 0.01 && shootFlash <= 0.01) return;
 
     if(shootFlash > 0.01){
       ctx.save();
-      ctx.globalAlpha = shootFlash*0.75;
-      ctx.fillStyle = '#eaf7ff';
+      ctx.globalAlpha = shootFlash*0.8;
+      ctx.fillStyle = '#fff';
       ctx.fillRect(0,0,cw,ch);
       ctx.restore();
     }
 
     if(s > 0.01){
+      // red vignette
       ctx.save();
       const g = ctx.createRadialGradient(cw/2,ch/2, ch*0.25, cw/2,ch/2, ch*0.75);
       g.addColorStop(0,'rgba(0,0,0,0)');
@@ -1119,61 +1288,80 @@
       ctx.fillStyle = g;
       ctx.fillRect(0,0,cw,ch);
 
+      // occasional digital flicker
+      const flicker = (Math.sin(tGlobal*0.05) > 0.85) ? 0.12 : 0;
+      if(flicker>0){
+        ctx.globalAlpha = flicker*s;
+        ctx.fillStyle = '#3df1ff';
+        ctx.fillRect(0,0,cw,ch);
+      }
+
+      // film grain (small tiled noise, cheap redraw every few frames)
       if((frameCount % 3)===0){
         const idata = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
         for(let i=0;i<idata.data.length;i+=4){
           const v = Math.random()*255;
-          idata.data[i]=v; idata.data[i+1]=v; idata.data[i+2]=v; idata.data[i+3]=22;
+          idata.data[i]=v; idata.data[i+1]=v; idata.data[i+2]=v; idata.data[i+3]=28;
         }
         noiseCtx.putImageData(idata,0,0);
       }
-      ctx.globalAlpha = 0.12*s;
+      ctx.globalAlpha = 0.16*s;
       ctx.drawImage(noiseCanvas, 0,0, cw,ch);
       ctx.restore();
     }
   }
 
-  /* ---- on-canvas gesture progress HUD (rings only, no text) ---- */
+  /* ---- on-canvas gesture progress HUD ---- */
   function drawGestureHUD(ts){
     if(pinchActive && pinchHoldStart!==null && lastPinchCanvasPoint){
-      const t = clamp((ts-pinchHoldStart)/1800,0,1);
+      const t = clamp((ts-pinchHoldStart)/3000,0,1);
       drawProgressRing(lastPinchCanvasPoint.x, lastPinchCanvasPoint.y, t, '#39ff8f');
     }
-    if(gunActive && gunHoldStart!==null && lastGunCanvasPoint){
-      const t = clamp((ts-gunHoldStart)/1400,0,1);
-      drawProgressRing(lastGunCanvasPoint.x, lastGunCanvasPoint.y, t, '#3df1ff');
+    if(gunActive && gunHoldStart!==null){
+      const t = clamp((ts-gunHoldStart)/2000,0,1);
+      const pt = gunMuzzlePoint || {x:window.innerWidth/2,y:window.innerHeight*0.3};
+      drawProgressRing(pt.x, pt.y-70, t, '#ff5b3d');
     }
   }
+  // icon-only progress ring (no text label) with a small centered glyph
   function drawProgressRing(x,y,t,color){
     ctx.save();
     ctx.beginPath();
-    ctx.arc(x,y,24,0,Math.PI*2);
+    ctx.arc(x,y,26,0,Math.PI*2);
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.lineWidth = 4;
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(x,y,24, -Math.PI/2, -Math.PI/2 + t*Math.PI*2);
+    ctx.arc(x,y,26, -Math.PI/2, -Math.PI/2 + t*Math.PI*2);
     ctx.strokeStyle = color;
     ctx.shadowBlur = 10; ctx.shadowColor = color;
     ctx.lineWidth = 4;
     ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x,y, t>=1 ? 5 : 3, 0, Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.shadowBlur = t>=1 ? 12 : 0;
+    ctx.shadowColor = color;
+    ctx.fill();
     ctx.restore();
   }
+
 
   function renderLoop(ts){
     if(!running) return;
     tGlobal = ts;
-    updateGlitch();
+    updateSmoothState();
 
     const cw = window.innerWidth, ch = window.innerHeight;
     const vw = offscreen.width, vh = offscreen.height;
 
     if(videoEl.readyState >= 2 && vw>0 && vh>0){
       ctx.save();
-      if(shakeFrames > 0){
-        ctx.translate((Math.random()-0.5)*shakeFrames*1.6, (Math.random()-0.5)*shakeFrames*1.6);
+      if(shakeMag > 0.3){
+        const sx = (Math.random()-0.5)*shakeMag;
+        const sy = (Math.random()-0.5)*shakeMag;
+        ctx.translate(sx, sy);
       }
-
       drawBackgroundVideo(vw,vh);
 
       const scale = Math.max(cw/vw, ch/vh);
@@ -1188,12 +1376,18 @@
 
       updateGestures(ts, cw, ch);
 
-      drawFingerShapes(cw,ch);
+      if(shapeGroups.length){
+        drawShapes(cw,ch);
+        hintEl.style.opacity = '0';
+      } else {
+        hintEl.style.opacity = '1';
+      }
+
       drawMask(cw,ch);
 
       updateParticles();
       drawParticles();
-      drawShockRing(cw,ch);
+      drawShockwaves(cw,ch);
 
       drawScaryOverlay(cw,ch);
 
@@ -1201,7 +1395,6 @@
       if(showDots) drawHandDots(cw,ch);
 
       drawGestureHUD(ts);
-
       ctx.restore();
     }
 
@@ -1227,7 +1420,7 @@
     currentTheme = sw.dataset.theme;
     document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
     sw.classList.add('sel');
-    showToast('Tema diubah: ' + sw.title);
+    showIcon('theme');
   });
   document.addEventListener('click', (e)=>{
     if(!themeMenu.contains(e.target) && e.target!==btnTheme){
@@ -1238,19 +1431,19 @@
   btnDots.addEventListener('click', ()=>{
     showDots = !showDots;
     btnDots.classList.toggle('active', showDots);
-    showToast(showDots ? 'Titik tangan aktif' : 'Titik tangan nonaktif');
+    showIcon(showDots ? 'dotsOn' : 'dotsOff');
   });
 
   btnMirror.addEventListener('click', ()=>{
     mirrored = !mirrored;
     btnMirror.classList.toggle('active', mirrored);
-    showToast(mirrored ? 'Mode cermin aktif' : 'Mode cermin nonaktif');
+    showIcon('mirror');
   });
 
   btnShot.addEventListener('click', ()=>{
     try{
       const link = document.createElement('a');
-      link.download = 'yna-tracking-' + Date.now() + '.png';
+      link.download = 'rainbow-hand-portal-' + Date.now() + '.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
       snapFlash.style.transition = 'none';
@@ -1259,15 +1452,15 @@
         snapFlash.style.transition = 'opacity .4s ease';
         snapFlash.style.opacity = '0';
       });
-      showToast('Gambar tersimpan');
+      showIcon('shot');
     }catch(err){
-      showToast('Gagal menyimpan gambar');
+      console.error(err);
     }
   });
 
   btnCam.addEventListener('click', ()=>{
     facing = (facing === 'user') ? 'environment' : 'user';
-    showToast('Mengganti kamera');
+    showIcon('cam');
     startCamera();
   });
 
@@ -1280,6 +1473,8 @@
       btnFull.classList.remove('active');
     }
   });
+
+  btnMirror.classList.add('active'); // mirrored default on
 
   /* ================= Boot ================= */
   resizeCanvas();
